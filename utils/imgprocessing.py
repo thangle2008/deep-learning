@@ -39,32 +39,27 @@ def resize_and_crop(img, new_size, interp='bicubic'):
 
 class ImgDataPreprocessing:
 
-    def __init__(self, data, centered=False, standardized=False):
-        self._data = np.asarray(data, dtype=np.float64)
+    def __init__(self, centered=False, standardized=False):
         self._centered = centered
         self._standardized = standardized
-        self._completed = False
+        self._info = dict()
 
-    def process(self):
-        data = self._data
+    def process(self, data):
+        data = data.astype(np.float64)
 
         if self._centered:
             mean = np.mean(data, axis=(0, 1, 2)) # compute means across color channels
-            self._mean = mean.reshape((1, 1, 3))
-            data -= self._mean 
+            mean = mean.reshape((1, 1, 3))
+            data -= mean
+            self._info['mean'] = mean
 
         if self._standardized:
             std = np.std(data, axis=(0, 1, 2))
-            self._std = std.reshape((1, 1, 3))
-            data /= self._std
+            std = std.reshape((1, 1, 3))
+            data /= std
+            self._info['std'] = std
 
-        self._completed = True
-
+        return data
+    
     def get_info(self):
-        res = dict()
-        if self._completed:
-            if self._centered: 
-                res['mean'] = self._mean
-            if self._standardized:
-                res['std'] = self._std
-        return res
+        return self._info
