@@ -77,10 +77,12 @@ def load_data(folder, p_train=0.5, new_size=None, seed=None):
     X, y = zip(*imgs)
     X = np.asarray(X)
     y = np.asarray(y)
+    print X.shape
 
     if p_train <= 0 or p_train >= 1:
         return (X, y), None, num_to_name
 
     # split data
     train, test = _split_data(X, y, p_train, seed)
+    
     return train, test, num_to_name

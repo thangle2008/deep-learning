@@ -1,64 +1,88 @@
 from __future__ import division
 import time
 
-from keras import optimizers
-from keras.utils import np_utils
-from keras import backend as K
-from keras.preprocessing.image import ImageDataGenerator
-
-import sklearn
 import numpy as np
+
+import keras
+import keras.backend as K
+from keras.preprocessing.image import ImageDataGenerator
 
 from models.resnet import ResnetBuilder
 from utils.imgloader import load_data
-from utils.imgprocessing import ImgDataPreprocessing
+from utils.imgprocessing import ImgDataPreprocessing, crop, horizontal_flip
 
-def data_generator(X, y, batch_size, shuffle=False):
-    if shuffle:
-        X, y = sklearn.utils.shuffle(X, y)
 
-    num_batches = X.shape[0] // batch_size
-    for i in range(num_batches):
-        idx = i * batch_size
-        yield X[idx:idx+batch_size], y[idx:idx+batch_size]
+def augment_batch(data, new_size=None, crop_method='center', h_flip=False):
+    """Augment a batch of images."""
 
-if __name__ == '__main__':
-    DIM = 224
+    size = new_size if new_size else data.shape[1]
+    new_data = np.zeros((data.shape[0], size, size, 3), dtype=K.floatx())
 
-    # load data
-    train, test, num_to_name = load_data('./data/101_ObjectCategories', new_size=DIM)
+    for idx in xrange(len(data)):
+        img = crop(data[idx], size, method=crop_method)
+        img = horizontal_flip(img, f=0.5) if h_flip else img
+        new_data[idx] = img
+
+    return new_data
+
+
+def run(train, val, num_classes, dim=224, num_epochs=100):
+    """
+    Train a classifier with the provided training and validation data.
+    The images should be raw.
+    """
+
     X_train, y_train = train
-    X_test, y_test = test
+    X_val, y_val = val
 
-    X_train = np.asarray(X_train, dtype=np.float32) / 255.0
-    X_test = np.asarray(X_test, dtype=np.float32) / 255.0
+    y_train = keras.utils.to_categorical(y_train, num_classes)
+    y_val = keras.utils.to_categorical(y_val, num_classes)
 
-    y_train = np_utils.to_categorical(y_train, len(num_to_name))
-    y_test = np_utils.to_categorical(y_test, len(num_to_name))
+    # calculate mean and std for normalizing
+    idp = ImgDataPreprocessing(centered=True, standardized=True)
+    idp.process(X_train)
+    mean, std = K.cast_to_floatx(idp.mean), K.cast_to_floatx(idp.std)
 
-    # initialize model
-    model = ResnetBuilder.build_resnet_18((3, DIM, DIM), len(num_to_name))
+    print mean, std
+
+    # preprocess images
+    X_train, X_val = K.cast_to_floatx(X_train), K.cast_to_floatx(X_val)
+    X_train -= mean.reshape(1, 1, 3)
+    X_train /= std.reshape(1, 1, 3)
+    X_val -= mean.reshape(1, 1, 3)
+    X_val /= std.reshape(1, 1, 3)
+
+    # load model
+    model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
     model.compile(optimizer='sgd',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    # train
-    NUM_EPOCHS = 100
-
-    print model.get_input_shape_at(0)
-
     datagen = ImageDataGenerator()
 
-    for epoch in range(1, NUM_EPOCHS+1):
+    # training and validating
+    for e in range(num_epochs):
+        print "Training on epoch {}".format(e+1)
+
         start_time = time.time()
-        batches = 0
-        for X_batch, y_batch in datagen.flow(X_train, y_train, batch_size=32):
-            batches += 1
-            model.fit(X_batch, y_batch)
-            if batches >= len(X_train) / 32:
-                break
-        print "Training time = {:.3f}".format(time.time()-start_time)
 
-        val_err, val_acc = model.evaluate(X_test, y_test, batch_size=32)
+        total_train_err, total_train_acc = 0.0, 0.0
+        num_train_batches = 0
 
-        print "Val acc = {:.2f}%".format(val_acc * 100)
+        for X_batch, y_batch in datagen.flow(X_train, y_train, 
+                                             batch_size=32, shuffle=True):
+            X_batch = augment_batch(X_batch, dim, 'random', True)
+            train_err, train_acc = model.train_on_batch(X_batch, y_batch)
+            total_train_err += train_err
+            total_train_acc += train_acc
+            num_train_batches += 1
+
+        print "Training time is {:.3f}s".format(time.time()-start_time)
+        print "training err = {:.3f}, training acc = {:.2f}%".format(
+                                        total_train_err / num_train_batches,
+                                        total_train_acc * 100 / num_train_batches)
+
+
+if __name__ == '__main__':
+    train, val, num_to_class = load_data('data/101_ObjectCategories', new_size=140)
+    run(train, val, len(num_to_class), dim=128)
