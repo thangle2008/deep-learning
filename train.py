@@ -14,14 +14,20 @@ from utils.imgprocessing import ImgDataPreprocessing, crop, horizontal_flip
 
 
 def augment_batch(data, new_size=None, crop_method='center', h_flip=False):
-    """Augment a batch of images."""
+    """Transform a batch of images."""
 
     size = new_size if new_size else data.shape[1]
     new_data = np.zeros((data.shape[0], size, size, 3), dtype=K.floatx())
 
+    if K.image_data_format() == 'channels_first':
+        new_data = new_data.transpose(0, 3, 1, 2)
+
     for idx in xrange(len(data)):
-        img = crop(data[idx], size, method=crop_method)
-        img = horizontal_flip(img, f=0.5) if h_flip else img
+        img = crop(data[idx], size, method=crop_method, 
+                                    img_format=K.image_data_format())
+        if h_flip:
+            img = horizontal_flip(img, f=0.5, img_format = K.image_data_format()) 
+
         new_data[idx] = img
 
     return new_data
@@ -53,6 +59,11 @@ def run(train, val, num_classes, dim=224, num_epochs=100):
 
     X_val -= mean.reshape(1, 1, 3)
     X_val /= std.reshape(1, 1, 3)
+    
+    if K.image_data_format() == 'channels_first':
+        X_train = X_train.transpose(0, 3, 1, 2)
+        X_val = X_val.transpose(0, 3, 1, 2)
+
     X_val = augment_batch(X_val, dim, 'center', False)
 
     # load model
@@ -70,6 +81,7 @@ def run(train, val, num_classes, dim=224, num_epochs=100):
 
     # training and validating
     for e in range(num_epochs):
+        # training
         print "Training on epoch {}".format(e+1)
 
         total_train_err, total_train_acc = 0.0, 0.0
@@ -89,15 +101,15 @@ def run(train, val, num_classes, dim=224, num_epochs=100):
                     break
 
         print "training err = {:.3f}, training acc = {:.2f}%".format(
-                                        total_train_err / num_train_batches,
-                                        total_train_acc * 100 / num_train_batches)
+                                    total_train_err / num_train_batches,
+                                    total_train_acc * 100 / num_train_batches)
 
         # validating
         val_err, val_acc = model.evaluate(X_val, y_val, batch_size=32)
 
         print "validation err = {:.3f}, validation acc = {:.2f}%".format(
-                                        val_err,
-                                        val_acc * 100)
+                                    val_err,
+                                    val_acc * 100)
 
         if best_val_acc < val_acc:
             print "This yields the best validation accuracy so far."

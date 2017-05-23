@@ -6,48 +6,54 @@ import numpy as np
 from scipy.misc import imresize
 
 
-def crop(img, new_size, method='center'):
+def crop(img, new_size, method='center', img_format='channels_last'):
     """Crop an image to a new size."""
     if method == 'center':
-        return center_crop(img, new_size)
+        return center_crop(img, new_size, img_format)
     elif method == 'random':
-        return random_crop(img, new_size)
+        return random_crop(img, new_size, img_format)
     else:
         raise ValueError
 
 
-def center_crop(img, new_size):
+def center_crop(img, new_size, img_format='channels_last'):
     """
     Crop an image at the center. Assume that both dims are not 
     less than new size.
     """
-    h, w = img.shape[:2]
+    h, w = img.shape[:2] if img_format == 'channels_last' else img.shape[1:]
 
     h_offset = int(math.ceil((h - new_size) / 2))
     w_offset = int(math.ceil((w - new_size) / 2))
 
-    return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+    if img_format == 'channels_last':
+        return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+    else:
+        return img[:, h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
 
-def random_crop(img, new_size):
+def random_crop(img, new_size, img_format='channels_last'):
     """
     Randomly choose a region from an image to crop from.
     """
-    h, w = img.shape[:2]
+    h, w = img.shape[:2] if img_format == 'channels_last' else img.shape[1:]
 
     h_offset = random.randint(0, h-new_size)
     w_offset = random.randint(0, w-new_size)
 
-    return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+    if img_format == 'channels_last':
+        return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+    else:
+        return img[:, h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
 
-def horizontal_flip(img, f=0.5):
+def horizontal_flip(img, f=0.5, img_format='channels_last'):
     """
     Randomly flip an image horizontally.
     """
     num = random.random()
     if num >= f:
-        img = img[:, ::-1]
+        img = img[:, ::-1] if img_format == 'channels_last' else img[:, :, ::-1]
     return img
 
 
