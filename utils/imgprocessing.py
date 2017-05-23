@@ -15,6 +15,7 @@ def crop(img, new_size, method='center'):
     else:
         raise ValueError
 
+
 def center_crop(img, new_size):
     """
     Crop an image at the center. Assume that both dims are not 
@@ -27,6 +28,7 @@ def center_crop(img, new_size):
 
     return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
+
 def random_crop(img, new_size):
     """
     Randomly choose a region from an image to crop from.
@@ -38,6 +40,7 @@ def random_crop(img, new_size):
 
     return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
+
 def horizontal_flip(img, f=0.5):
     """
     Randomly flip an image horizontally.
@@ -46,6 +49,7 @@ def horizontal_flip(img, f=0.5):
     if num >= f:
         img = img[:, ::-1]
     return img
+
 
 def resize_and_crop(img, new_size, interp='bicubic'):
     """
@@ -73,6 +77,7 @@ class ImgDataPreprocessing:
         self._standardized = standardized
         self.mean = None
         self.std = None
+
 
     def process(self, data):
         data = data.astype(np.float64)
