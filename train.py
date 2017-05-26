@@ -1,6 +1,4 @@
 from __future__ import division
-import time
-import progressbar
 
 import numpy as np
 
@@ -9,8 +7,10 @@ import keras.backend as K
 from keras.preprocessing.image import ImageDataGenerator
 
 from models.resnet import ResnetBuilder
+
 from utils.imgloader import load_data
 from utils.imgprocessing import ImgDataPreprocessing, crop, horizontal_flip
+from utils.keras_callbacks import BestModelCheck
 
 
 def _get_transform_func(new_size=None, crop_method='center', h_flip=False):
@@ -100,15 +100,21 @@ def run(train, val, num_classes, dim=224, num_epochs=100):
     train_transform = _get_transform_func(dim, 'random', True)
     val_transform = _get_transform_func(dim, 'center', False)
 
+    best_model_check = BestModelCheck()
+
     model.fit_generator(
         _batch_generator(X_train, y_train, augment_func=train_transform),
         steps_per_epoch=X_train.shape[0] // 32,
         epochs=num_epochs,
-        validation_data=_batch_generator(X_val, y_val, augment_func=val_transform),
+        validation_data=_batch_generator(X_val, y_val, 
+                                shuffle=False, augment_func=val_transform),
         validation_steps=X_val.shape[0] // 32,
+        callbacks=[best_model_check,],
     )
+
+    print "Best validation loss = {:.3f}".format(best_model_check.best_val_loss)
 
 if __name__ == '__main__':
     train, val, num_to_name = load_data('data/101_ObjectCategories', 
                                         p_train=0.8, new_size=140)
-    run(train, val, len(num_to_name), dim=128) 
+    run(train, val, len(num_to_name), dim=128, num_epochs=2) 
