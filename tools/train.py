@@ -1,15 +1,12 @@
 from __future__ import division
 
+import json
 import numpy as np
 
-import keras
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGenerator
 
-from models.resnet import ResnetBuilder
-
-from utils.imgloader import load_data
-from utils.imgprocessing import ImgDataPreprocessing, crop, horizontal_flip
+from utils.imgprocessing import crop, horizontal_flip
 from utils.keras_callbacks import BestModelCheck
 
 
@@ -41,7 +38,7 @@ def _batch_generator(X, y, batch_size=32, shuffle=True, augment_func=None):
     """Generate batches from given data."""
 
     indices = np.arange(X.shape[0])
-    n_batches = X.shape[0] // 32
+    n_batches = X.shape[0] // batch_size
 
     while True:
         if shuffle:
@@ -55,66 +52,41 @@ def _batch_generator(X, y, batch_size=32, shuffle=True, augment_func=None):
             yield X_batch, y_batch
 
 
-def run(train, val, num_classes, dim=224, num_epochs=100):
+def run(model, train, val, num_classes, batch_size=32, dim=224, num_epochs=100):
     """
     Train a classifier with the provided training and validation data.
-    The images should be raw.
+    The model must be a compiled keras model.
     """
 
-    # mean and std were calculated using 2000 samples from training set
-    mean = np.asarray([137.14349233, 131.30804223, 123.85041327],
-                dtype=K.floatx())
-    std = np.asarray([78.71011359,  76.94469003,  80.1550091],
-                dtype=K.floatx())
-
-    # preprocess images
     X_train, y_train = train
     X_val, y_val = val
-    X_train, X_val = K.cast_to_floatx(X_train), K.cast_to_floatx(X_val)
-
-    X_train -= mean.reshape(1, 1, 3)
-    X_train /= std.reshape(1, 1, 3)
-
-    X_val -= mean.reshape(1, 1, 3)
-    X_val /= std.reshape(1, 1, 3)
-
-    y_train = keras.utils.to_categorical(y_train, num_classes)
-    y_val = keras.utils.to_categorical(y_val, num_classes)
     
     if K.image_data_format() == 'channels_first':
         X_train = X_train.transpose(0, 3, 1, 2)
         X_val = X_val.transpose(0, 3, 1, 2)
 
-    # X_val = _augment_batch(X_val, dim, 'center', False)
-    print X_train.shape
+    best_model_check = BestModelCheck('./experiments/weights.hdf5')
 
-    # load model
-    print "Load model..."
-    model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
-    model.compile(optimizer='adadelta',
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-
-    print "Number of classes =", num_classes
-
+    # define generator functions for training and validation data
     train_transform = _get_transform_func(dim, 'random', True)
     val_transform = _get_transform_func(dim, 'center', False)
 
-    best_model_check = BestModelCheck()
+    train_gen = _batch_generator(X_train, y_train, 
+        batch_size=batch_size, shuffle=True, augment_func=train_transform)
+    val_gen = _batch_generator(X_val, y_val, 
+        batch_size=batch_size, shuffle=False, augment_func=val_transform)
 
     model.fit_generator(
-        _batch_generator(X_train, y_train, augment_func=train_transform),
-        steps_per_epoch=X_train.shape[0] // 32,
+        train_gen,
+        steps_per_epoch=X_train.shape[0] // batch_size,
         epochs=num_epochs,
-        validation_data=_batch_generator(X_val, y_val, 
-                                shuffle=False, augment_func=val_transform),
-        validation_steps=X_val.shape[0] // 32,
+        validation_data=val_gen,
+        validation_steps=X_val.shape[0] // batch_size,
         callbacks=[best_model_check,],
     )
 
     print "Best validation loss = {:.3f}".format(best_model_check.best_val_loss)
+    print "Best validation acc = {:.3f}%".format(
+        best_model_check.best_val_acc * 100)
 
-if __name__ == '__main__':
-    train, val, num_to_name = load_data('data/101_ObjectCategories', 
-                                        p_train=0.8, new_size=140)
-    run(train, val, len(num_to_name), dim=128, num_epochs=2) 
+    return best_model_check.best_val_loss
