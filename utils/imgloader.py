@@ -7,7 +7,9 @@ from scipy.misc import imread
 
 from .imgprocessing import resize_and_crop
 
-def _get_paths(folder):
+### General format image loading functions
+
+def _get_paths_with_labels(folder, dformat=None):
     """
     Returns list of file paths by classes in a given directory.
     """
@@ -17,21 +19,27 @@ def _get_paths(folder):
     num_to_name = dict() # class num to class name
 
     n_class = 0
+    class_name = None
     # get the file paths
     for root, dirnames, filenames in os.walk(folder):  
         dirnames.sort()
         if root == folder:
             continue
-        current_dir = root.split('/')[-1]
 
-        print current_dir
+        current_dir = root.split('/')[-1]
+        if not dformat:
+            class_id = current_dir
+        elif dformat == 'imagenet' and current_dir != 'images':
+            class_id = current_dir
+            continue
+
         for filename in filenames:
-            if re.search('\.(jpg|png|jpeg)$', filename):
+            if re.search('(?i)\.(jpg|png|jpeg)$', filename):
                 filepath = os.path.join(root, filename)
                 filepaths.append(filepath)
                 categories.append(n_class)
 
-        num_to_name[n_class] = current_dir
+        num_to_name[n_class] = class_id
         n_class += 1
 
     return filepaths, categories, num_to_name
@@ -53,30 +61,43 @@ def _split_data(X, y, p_train=0.5, seed=None):
 
 
 def _load_img(path, n_class, new_size=None, mode='RGB'):
-        img = imread(path, mode=mode)
-        if new_size:
-            img = resize_and_crop(img, new_size)
-        return img, n_class
+    img = imread(path, mode=mode)
+    if new_size:
+        img = resize_and_crop(img, new_size)
+    return img, n_class
 
 
-def load_data(folder, p_train=0.5, new_size=None, seed=None):
+def _multi_load_img(paths, labels, new_size=None):
     """
-    Loads data from a folder and returns the tuple (train, test, num_to_name).
-    If seed is None, then splitting is nondeterministic (not the same every run).
+    Loads images from paths asynchronously. Also preserves the labels.
     """
 
-    X, y, num_to_name = _get_paths(folder)
-
-    # load images
     pool = multiprocessing.Pool()
-    num_samples = len(X)
-    results = [pool.apply_async(_load_img, (X[i], y[i], new_size)) 
+    num_samples = len(paths)
+    results = [pool.apply_async(_load_img, (paths[i], labels[i], new_size)) 
                     for i in xrange(num_samples)]
     imgs = [r.get() for r in results]
 
     X, y = zip(*imgs)
     X = np.asarray(X)
     y = np.asarray(y)
+
+    return X, y
+
+
+def load_data(folder, dformat=None, p_train=0.5, new_size=None, seed=None):
+    """
+    Loads data from a folder and returns the tuple (train, test, num_to_name).
+    If seed is None, then splitting is nondeterministic (not the same 
+    every run).
+    """
+
+    paths, labels, num_to_name = _get_paths_with_labels(folder, 
+                                                        dformat=dformat)
+
+    # load images
+    X, y = _multi_load_img(paths, labels, new_size=new_size)
+    
     print X.shape
 
     if p_train <= 0 or p_train >= 1:
@@ -86,3 +107,61 @@ def load_data(folder, p_train=0.5, new_size=None, seed=None):
     train, test = _split_data(X, y, p_train, seed)
     
     return train, test, num_to_name
+
+
+### ImageNet format loading functions
+
+def _read_annotations(filepath):
+    """
+    Read an annotation file and return a dictionary containing
+    each image's information.
+    """
+    annotations = dict()
+    with open(filepath, 'r') as annotation_file:
+        for line in annotation_file:
+            fname, class_id, bx, by, tx, ty = line.split()
+            bbox = (bx, by, tx, ty) 
+            annotations[fname] = {'id': class_id, 'bbox': bbox}
+    return annotations
+
+
+def _get_val_imagenet_paths(folder, id_to_num):
+    """
+    Get validation image paths.
+    id_to_name is a dictionary that maps a class id to a label number.
+    """
+    # get annotation file
+    annotation_file = os.path.join(folder, 'val_annotations.txt')
+    annotations = _read_annotations(annotation_file)
+
+    # get image paths with labels
+    paths, labels = [], []
+
+    filedir = os.path.join(folder, 'images')
+
+    for f in os.listdir(filedir):
+        p = os.path.join(filedir, f)
+        if os.path.isfile(p) and re.search('(?i)\.(jpg|png|jpeg)', f):
+            paths.append(p)
+            labels.append( id_to_num[annotations[f]['id']] )
+
+    return paths, labels
+
+
+def load_imagenet(folder):
+    """
+    Load images from a folder in ImageNet format.
+    """
+    # load training data
+    train_folder = os.path.join(folder, 'train')
+    train, _, num_to_id = load_data(train_folder, 
+                                    dformat='imagenet', 
+                                    p_train=1.0)
+
+    # load validation data
+    id_to_num = dict((class_id, num) for num, class_id in num_to_id.items())
+    val_folder = os.path.join(folder, 'val')
+    val_paths, val_labels = _get_val_imagenet_paths(val_folder, id_to_num)
+    val = _multi_load_img(val_paths, val_labels)
+
+    return train, val, num_to_id

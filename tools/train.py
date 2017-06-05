@@ -7,7 +7,8 @@ import keras.backend as K
 from keras.preprocessing.image import ImageDataGenerator
 
 from utils.imgprocessing import crop, horizontal_flip
-from utils.keras_callbacks import BestModelCheck
+
+from .keras_callbacks import BestModelCheck
 
 
 def _get_transform_func(new_size=None, crop_method='center', h_flip=False):

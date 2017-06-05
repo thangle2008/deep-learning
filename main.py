@@ -2,9 +2,11 @@ import argparse
 import json
 import numpy as np
 
+from utils.imgloader import load_data, load_imagenet
 from tools import train as Trainer
+
+from models import vgg16
 from models.resnet import ResnetBuilder
-from utils.imgloader import load_data
 
 import keras
 import keras.backend as K
@@ -12,7 +14,8 @@ import keras.backend as K
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--data', dest='data', action='store', 
-                        choices=['caltech101'], default='caltech101')
+                        choices=['caltech101', 'tinyimagenet'], 
+                        default='caltech101')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--epochs', type=int, default=100)
 
@@ -30,22 +33,32 @@ if __name__ == '__main__':
     load_dim = dataconf['load_dim']
     dim = dataconf['crop_dim']
     opt = dataconf['opt'] if 'opt' in dataconf else {}
-    mean = np.asarray(dataconf['mean'], dtype=K.floatx())
-    std = np.asarray(dataconf['std'], dtype=K.floatx())
 
     # load and preprocess data
-    print datapath
-    (X_train, y_train), (X_val, y_val), num_to_name = load_data(datapath, 
-        new_size=load_dim, p_train=0.8, seed=SEED)
+    print "Load data from", datapath
+
+    if args.data == 'tinyimagenet':
+        (X_train, y_train), (X_val, y_val), num_to_name = load_imagenet(datapath)
+    else:
+        (X_train, y_train), (X_val, y_val), num_to_name = load_data(datapath, 
+            new_size=load_dim, p_train=0.8, seed=SEED)
+
     num_classes = len(num_to_name)
 
     X_train = K.cast_to_floatx(X_train)
-    X_train -= mean.reshape(1, 1, 3)
-    X_train /= std.reshape(1, 1, 3)
-
     X_val = K.cast_to_floatx(X_val)
-    X_val -= mean.reshape(1, 1, 3)
-    X_val /= std.reshape(1, 1, 3)
+
+    if 'mean' in dataconf:
+        mean = np.asarray(dataconf['mean'], dtype=K.floatx())
+        print "Subtracting mean =", mean
+        X_train -= mean.reshape(1, 1, 3)
+        X_val -= mean.reshape(1, 1, 3)
+    
+    if 'std' in dataconf:
+        std = np.asarray(dataconf['std'], dtype=K.floatx())
+        print "Dividing by std =", std
+        X_train /= std.reshape(1, 1, 3)
+        X_val /= std.reshape(1, 1, 3)
 
     y_train = keras.utils.to_categorical(y_train, num_classes)
     y_val = keras.utils.to_categorical(y_val, num_classes)
@@ -57,15 +70,16 @@ if __name__ == '__main__':
     if args.model == 'resnet':
         model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
     elif args.model == 'vgg16':
-        model = keras.applications.vgg16.VGG16(weights=None, classes=num_classes)
+        model = vgg16.build_model(weights=None, input_shape=(dim, dim, 3), 
+            classes=num_classes)
 
     optimizer = keras.optimizers.SGD(**opt)
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
+    print model.count_params()
     print "Training samples =", X_train.shape
-    print "Mean = {}, std = {}".format(mean, std)
     print "Number of classes =", num_classes
     print "Training parameters =", optimizer.get_config()
     
