@@ -11,6 +11,9 @@ from models.resnet import ResnetBuilder
 import keras
 import keras.backend as K
 
+from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--data', dest='data', action='store', 
@@ -18,8 +21,28 @@ parser.add_argument('--data', dest='data', action='store',
                         default='caltech101')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--optimize', action='store_true')
 
 SEED = 28
+
+
+def optimize_params(model, train, val, num_classes, dim=224, num_epochs=100):
+    """
+    Optimize hyperparameters of a given training model.
+    """
+    space = {
+        'lr': hp.uniform('lr', 0.05, 0.5)
+    }
+
+    def objective(params):
+        score = Trainer.run(model, train, val, num_classes, dim=dim, 
+            num_epochs=num_epochs, opt=params)
+        return {'loss': score, 'status': STATUS_OK} 
+
+    trials = Trials()
+
+    best = fmin(objective, space, algo=tpe.suggest, max_evals=10, trials=trials)
+    return best
 
 
 if __name__ == '__main__':
@@ -73,14 +96,16 @@ if __name__ == '__main__':
         model = vgg16.build_model(weights=None, input_shape=(dim, dim, 3), 
             classes=num_classes)
 
-    optimizer = keras.optimizers.SGD(**opt)
-    model.compile(optimizer=optimizer,
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-
-    print model.count_params()
+    print "Number of parameters =", model.count_params()
     print "Training samples =", X_train.shape
     print "Number of classes =", num_classes
-    print "Training parameters =", optimizer.get_config()
     
-    Trainer.run(model, train, val, num_classes, dim=dim, num_epochs=args.epochs)
+    if args.optimize:
+        print "Optimize hyperparameters"
+        best = optimize_params(model, train, val, num_classes, 
+            dim=dim, num_epochs=10)
+        print best
+
+    else:
+        Trainer.run(model, train, val, num_classes, 
+            dim=dim, num_epochs=args.epochs, opt=opt)

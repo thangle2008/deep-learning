@@ -1,10 +1,11 @@
 from __future__ import division
 
+import random
 import json
 import numpy as np
 
+import keras
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGenerator
 
 from utils.imgprocessing import crop, horizontal_flip
 
@@ -53,11 +54,15 @@ def _batch_generator(X, y, batch_size=32, shuffle=True, augment_func=None):
             yield X_batch, y_batch
 
 
-def run(model, train, val, num_classes, batch_size=32, dim=224, num_epochs=100):
+def run(model, train, val, num_classes, batch_size=32, 
+        dim=224, num_epochs=100, opt={}):
     """
     Train a classifier with the provided training and validation data.
     The model must be a compiled keras model.
     """
+    # set the random seed for image processing and shuffling
+    random.seed(28)
+    np.random.seed(28)
 
     X_train, y_train = train
     X_val, y_val = val
@@ -76,6 +81,14 @@ def run(model, train, val, num_classes, batch_size=32, dim=224, num_epochs=100):
         batch_size=batch_size, shuffle=True, augment_func=train_transform)
     val_gen = _batch_generator(X_val, y_val, 
         batch_size=batch_size, shuffle=False, augment_func=val_transform)
+
+
+    # compile model
+    optimizer = keras.optimizers.SGD(**opt)
+    model.compile(optimizer=optimizer,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    print "Training parameters =", optimizer.__class__, optimizer.get_config()
 
     model.fit_generator(
         train_gen,
