@@ -1,7 +1,7 @@
 {
     "data": "./data/images/101_ObjectCategories",
-    "load_dim": 256,
-    "crop_dim": 224,
+    "load_dim": 140,
+    "crop_dim": 128,
     "mean": [137.14349233, 131.30804223, 123.85041327],
     "std": [78.71011359,  76.94469003,  80.1550091]
 }

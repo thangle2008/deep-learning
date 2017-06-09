@@ -6,7 +6,7 @@ class BestModelCheck(Callback):
     """Keep track of the best model with lowest validation loss."""
 
 
-    def __init__(self, save_path):
+    def __init__(self, save_path, verbose=0):
         super(BestModelCheck, self).__init__()
         self.save_path = save_path
 

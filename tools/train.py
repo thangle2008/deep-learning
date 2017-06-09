@@ -6,10 +6,12 @@ import numpy as np
 
 import keras
 import keras.backend as K
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 
 from utils.imgprocessing import crop, horizontal_flip
 
-from .keras_callbacks import BestModelCheck
+from models.resnet import ResnetBuilder
+from models import vgg16
 
 
 def _get_transform_func(new_size=None, crop_method='center', h_flip=False):
@@ -22,7 +24,7 @@ def _get_transform_func(new_size=None, crop_method='center', h_flip=False):
         if K.image_data_format() == 'channels_first':
             new_data = new_data.transpose(0, 3, 1, 2)
 
-        for idx in xrange(len(data)):
+        for idx in xrange(len(data)):                                                                                                                               
             img = crop(data[idx], size, method=crop_method, 
                                         img_format=K.image_data_format())
             if h_flip:
@@ -71,7 +73,11 @@ def run(model, train, val, num_classes, batch_size=32,
         X_train = X_train.transpose(0, 3, 1, 2)
         X_val = X_val.transpose(0, 3, 1, 2)
 
-    best_model_check = BestModelCheck('./experiments/weights.hdf5')
+    # callbacks list
+    model_checkpoint = ModelCheckpoint(
+        'weights.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
+    reduce_lr = ReduceLROnPlateau(
+        monitor='loss', factor=0.5, patience=5, verbose=1, min_lr=0.0001)
 
     # define generator functions for training and validation data
     train_transform = _get_transform_func(dim, 'random', True)
@@ -82,12 +88,22 @@ def run(model, train, val, num_classes, batch_size=32,
     val_gen = _batch_generator(X_val, y_val, 
         batch_size=batch_size, shuffle=False, augment_func=val_transform)
 
+    # load model
+    print "Load model..."
+    if model == 'resnet':
+        model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
+    elif model == 'vgg16':
+        model = vgg16.build_model(weights=None, input_shape=(dim, dim, 3), 
+            classes=num_classes)
 
-    # compile model
     optimizer = keras.optimizers.SGD(**opt)
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
+
+    print "Number of parameters =", model.count_params()
+    print "Training samples =", X_train.shape
+    print "Number of classes =", num_classes
     print "Training parameters =", optimizer.__class__, optimizer.get_config()
 
     model.fit_generator(
@@ -96,11 +112,8 @@ def run(model, train, val, num_classes, batch_size=32,
         epochs=num_epochs,
         validation_data=val_gen,
         validation_steps=X_val.shape[0] // batch_size,
-        callbacks=[best_model_check,],
+        callbacks=[model_checkpoint, reduce_lr],
     )
 
-    print "Best validation loss = {:.3f}".format(best_model_check.best_val_loss)
-    print "Best validation acc = {:.3f}%".format(
-        best_model_check.best_val_acc * 100)
-
-    return best_model_check.best_val_loss
+    print "Best validation loss = {:.3f}".format(model_checkpoint.best)
+    return model_checkpoint.best

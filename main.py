@@ -5,9 +5,6 @@ import numpy as np
 from utils.imgloader import load_data, load_imagenet
 from tools import train as Trainer
 
-from models import vgg16
-from models.resnet import ResnetBuilder
-
 import keras
 import keras.backend as K
 
@@ -56,6 +53,7 @@ if __name__ == '__main__':
     load_dim = dataconf['load_dim']
     dim = dataconf['crop_dim']
     opt = dataconf['opt'] if 'opt' in dataconf else {}
+    #opt['nesterov'] = True # to be removed because of hardcoding
 
     # load and preprocess data
     print "Load data from", datapath
@@ -87,25 +85,13 @@ if __name__ == '__main__':
     y_val = keras.utils.to_categorical(y_val, num_classes)
 
     train, val = (X_train, y_train), (X_val, y_val)
-
-    # load model
-    print "Load model..."
-    if args.model == 'resnet':
-        model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
-    elif args.model == 'vgg16':
-        model = vgg16.build_model(weights=None, input_shape=(dim, dim, 3), 
-            classes=num_classes)
-
-    print "Number of parameters =", model.count_params()
-    print "Training samples =", X_train.shape
-    print "Number of classes =", num_classes
     
     if args.optimize:
         print "Optimize hyperparameters"
-        best = optimize_params(model, train, val, num_classes, 
+        best = optimize_params(args.model, train, val, num_classes, 
             dim=dim, num_epochs=10)
         print best
 
     else:
-        Trainer.run(model, train, val, num_classes, 
+        Trainer.run(args.model, train, val, num_classes, 
             dim=dim, num_epochs=args.epochs, opt=opt)
