@@ -1,8 +1,7 @@
 import argparse
-import json
 import numpy as np
+import importlib
 
-from utils.imgloader import load_data, load_imagenet
 from tools import train as Trainer
 
 import keras
@@ -14,8 +13,8 @@ from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--data', dest='data', action='store', 
-                        choices=['caltech101', 'tinyimagenet'], 
-                        default='caltech101')
+                        choices=['caltech101', 'tinyimagenet', 'cifar10'], 
+                        default='cifar10')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--optimize', action='store_true')
@@ -45,53 +44,12 @@ def optimize_params(model, train, val, num_classes, dim=224, num_epochs=100):
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    # parse config
-    with open('./data/{}.json'.format(args.data)) as data_file:
-        dataconf = json.load(data_file)
+    data_module = importlib.import_module('data.{}'.format(args.data))
 
-    datapath = dataconf['data']
-    load_dim = dataconf['load_dim']
-    dim = dataconf['crop_dim']
-    opt = dataconf['opt'] if 'opt' in dataconf else {}
-    #opt['nesterov'] = True # to be removed because of hardcoding
+    train, val, metadata = data_module.get_data_gen()
 
-    # load and preprocess data
-    print "Load data from", datapath
+    opt = None
+    if hasattr(data_module, 'get_optimizer'):
+        opt = data_module.get_optimizer()
 
-    if args.data == 'tinyimagenet':
-        (X_train, y_train), (X_val, y_val), num_to_name = load_imagenet(datapath)
-    else:
-        (X_train, y_train), (X_val, y_val), num_to_name = load_data(datapath, 
-            new_size=load_dim, p_train=0.8, seed=SEED)
-
-    num_classes = len(num_to_name)
-
-    X_train = K.cast_to_floatx(X_train)
-    X_val = K.cast_to_floatx(X_val)
-
-    if 'mean' in dataconf:
-        mean = np.asarray(dataconf['mean'], dtype=K.floatx())
-        print "Subtracting mean =", mean
-        X_train -= mean.reshape(1, 1, 3)
-        X_val -= mean.reshape(1, 1, 3)
-    
-    if 'std' in dataconf:
-        std = np.asarray(dataconf['std'], dtype=K.floatx())
-        print "Dividing by std =", std
-        X_train /= std.reshape(1, 1, 3)
-        X_val /= std.reshape(1, 1, 3)
-
-    y_train = keras.utils.to_categorical(y_train, num_classes)
-    y_val = keras.utils.to_categorical(y_val, num_classes)
-
-    train, val = (X_train, y_train), (X_val, y_val)
-    
-    if args.optimize:
-        print "Optimize hyperparameters"
-        best = optimize_params(args.model, train, val, num_classes, 
-            dim=dim, num_epochs=10)
-        print best
-
-    else:
-        Trainer.run(args.model, train, val, num_classes, 
-            dim=dim, num_epochs=args.epochs, opt=opt)
+    Trainer.run(args.model, train, val, metadata, opt=opt, num_epochs=args.epochs)

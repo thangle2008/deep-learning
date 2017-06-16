@@ -12,14 +12,15 @@ from .imgprocessing import resize_and_crop
 def _get_paths_with_labels(folder, dformat=None):
     """
     Returns list of file paths by classes in a given directory.
+    The directory is expected to have a subdirectory per class.
     """
     filepaths = []
     categories = []
     
-    num_to_name = dict() # class num to class name
+    label_names = [] # class num to class name
 
-    n_class = 0
     class_name = None
+    n_class = 0
     # get the file paths
     for root, dirnames, filenames in os.walk(folder):  
         dirnames.sort()
@@ -39,10 +40,10 @@ def _get_paths_with_labels(folder, dformat=None):
                 filepaths.append(filepath)
                 categories.append(n_class)
 
-        num_to_name[n_class] = class_id
+        label_names.append(class_id)
         n_class += 1
 
-    return filepaths, categories, num_to_name
+    return filepaths, categories, label_names
 
 
 def _split_data(X, y, p_train=0.5, seed=None):
@@ -87,12 +88,12 @@ def _multi_load_img(paths, labels, new_size=None):
 
 def load_data(folder, dformat=None, p_train=0.5, new_size=None, seed=None):
     """
-    Loads data from a folder and returns the tuple (train, test, num_to_name).
+    Loads data from a folder and returns the tuple (train, test, label_names).
     If seed is None, then splitting is nondeterministic (not the same 
     every run).
     """
 
-    paths, labels, num_to_name = _get_paths_with_labels(folder, 
+    paths, labels, label_names = _get_paths_with_labels(folder, 
                                                         dformat=dformat)
 
     # load images
@@ -101,12 +102,12 @@ def load_data(folder, dformat=None, p_train=0.5, new_size=None, seed=None):
     print X.shape
 
     if p_train <= 0 or p_train >= 1:
-        return (X, y), None, num_to_name
+        return (X, y), None, label_names
 
     # split data
     train, test = _split_data(X, y, p_train, seed)
     
-    return train, test, num_to_name
+    return train, test, label_names
 
 
 ### ImageNet format loading functions
@@ -154,14 +155,14 @@ def load_imagenet(folder):
     """
     # load training data
     train_folder = os.path.join(folder, 'train')
-    train, _, num_to_id = load_data(train_folder, 
+    train, _, label_names = load_data(train_folder, 
                                     dformat='imagenet', 
                                     p_train=1.0)
 
     # load validation data
-    id_to_num = dict((class_id, num) for num, class_id in num_to_id.items())
+    id_to_num = dict((label_names[i], i) for i in range(len(label_names)))
     val_folder = os.path.join(folder, 'val')
     val_paths, val_labels = _get_val_imagenet_paths(val_folder, id_to_num)
     val = _multi_load_img(val_paths, val_labels)
 
-    return train, val, num_to_id
+    return train, val, label_names

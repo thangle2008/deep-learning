@@ -6,6 +6,18 @@ import numpy as np
 from scipy.misc import imresize
 
 
+def meanstd(img, mean=None, std=None):
+    """Centralize and normalize an image."""
+
+    if mean is not None:
+        img -= mean.reshape(1, 1, 3)
+
+    if std is not None:
+        img /= std.reshape(1, 1, 3) 
+
+    return img
+
+
 def crop(img, new_size, method='center', img_format='channels_last'):
     """Crop an image to a new size."""
     if method == 'center':
