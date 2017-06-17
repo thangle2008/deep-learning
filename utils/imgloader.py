@@ -96,17 +96,20 @@ def load_data(folder, dformat=None, p_train=0.5, new_size=None, seed=None):
     paths, labels, label_names = _get_paths_with_labels(folder, 
                                                         dformat=dformat)
 
+    paths = np.asarray(paths)
+    labels = np.asarray(labels)
+
     # load images
-    X, y = _multi_load_img(paths, labels, new_size=new_size)
-    
-    print X.shape
-
     if p_train <= 0 or p_train >= 1:
-        return (X, y), None, label_names
+        train = _multi_load_img(paths, labels, new_size=new_size)
+        test = None
+    else:
+        train, test = _split_data(paths, labels, p_train, seed)
+        train = _multi_load_img(train[0], train[1], new_size=new_size)
+        test = _multi_load_img(test[0], test[1], new_size=new_size)
 
-    # split data
-    train, test = _split_data(X, y, p_train, seed)
-    
+    print train[0].shape    
+
     return train, test, label_names
 
 

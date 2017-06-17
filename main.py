@@ -13,8 +13,8 @@ from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--data', dest='data', action='store', 
-                        choices=['caltech101', 'tinyimagenet', 'cifar10'], 
-                        default='cifar10')
+                        choices=['bird', 'tinyimagenet', 'cifar10'], 
+                        default='tinyimagenet')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--optimize', action='store_true')
