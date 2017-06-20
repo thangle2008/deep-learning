@@ -1,34 +1,53 @@
-# adapt from https://github.com/fchollet/keras/blob/master/keras/applications/vgg16.py
-import keras
-import keras.backend as K
-from keras.models import Model
-from keras.layers.core import Flatten, Dense
+# adapt from https://gist.github.com/baraldilorenzo/07d7802847aaad0a35d3
 
+from keras.models import Sequential
+from keras.layers.core import Flatten, Dense, Dropout
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
 
-def build_model(include_top=True, weights='imagenet',
-                input_tensor=None, input_shape=None,
-                pooling=None,
-                classes=1000):
+def VGG_16(input_shape=(224, 224, 3), num_classes=1000):
 
-    builtin_model = keras.applications.vgg16.VGG16(
-        include_top=False, weights=weights,
-        input_tensor=input_tensor, input_shape=input_shape, 
-        pooling=None, classes=classes)
+    model = Sequential()
+    model.add(ZeroPadding2D((1,1),input_shape=input_shape))
+    model.add(Conv2D(64, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(64, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
 
-    x = builtin_model.outputs[0]
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(128, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(128, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
 
-    if include_top:
-        # Classification block
-        x = Flatten(name='flatten')(x)
-        x = Dense(1024, activation='relu', name='fc1')(x)
-        x = Dense(1024, activation='relu', name='fc2')(x)
-        x = Dense(classes, activation='softmax', name='predictions')(x)
-    else:
-        if pooling == 'avg':
-            x = GlobalAveragePooling2D()(x)
-        elif pooling == 'max':
-            x = GlobalMaxPooling2D()(x)
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(256, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
 
-    model = Model(builtin_model.inputs, x, name='vgg16')
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Conv2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(Flatten())
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))
 
     return model

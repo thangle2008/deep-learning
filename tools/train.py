@@ -44,8 +44,7 @@ def run(model, train, val, metadata, opt=None, batch_size=32, num_epochs=100):
     if model == 'resnet':
         model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
     elif model == 'vgg16':
-        model = vgg16.build_model(weights=None, input_shape=(dim, dim, 3), 
-            classes=num_classes)
+        model = vgg16.build_model((dim, dim, 3), num_classes)
 
     if opt is None:
         optimizer = keras.optimizers.Adam()

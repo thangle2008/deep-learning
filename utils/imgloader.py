@@ -3,7 +3,7 @@ import multiprocessing
 
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
-from scipy.misc import imread
+from scipy.misc import imread, imresize
 
 from .imgprocessing import resize_and_crop
 
@@ -61,21 +61,26 @@ def _split_data(X, y, p_train=0.5, seed=None):
     return (X_train, y_train), (X_test, y_test)
 
 
-def _load_img(path, n_class, new_size=None, mode='RGB'):
+def _load_img(path, n_class, new_size=None, scale=True, mode='RGB'):
     img = imread(path, mode=mode)
-    if new_size:
-        img = resize_and_crop(img, new_size)
+
+    if new_size is not None:
+        if scale:
+            img = resize_and_crop(img, new_size)
+        else:
+            img = imresize(img, (new_size, new_size))
+
     return img, n_class
 
 
-def _multi_load_img(paths, labels, new_size=None):
+def _multi_load_img(paths, labels, new_size=None, scale=True):
     """
     Loads images from paths asynchronously. Also preserves the labels.
     """
 
     pool = multiprocessing.Pool()
     num_samples = len(paths)
-    results = [pool.apply_async(_load_img, (paths[i], labels[i], new_size)) 
+    results = [pool.apply_async(_load_img, (paths[i], labels[i], new_size, scale)) 
                     for i in xrange(num_samples)]
     imgs = [r.get() for r in results]
 
@@ -86,11 +91,11 @@ def _multi_load_img(paths, labels, new_size=None):
     return X, y
 
 
-def load_data(folder, dformat=None, p_train=0.5, new_size=None, seed=None):
+def load_data(folder, dformat=None, p_train=0.5, new_size=None, 
+              scale=True, seed=None):
     """
     Loads data from a folder and returns the tuple (train, test, label_names).
-    If seed is None, then splitting is nondeterministic (not the same 
-    every run).
+    Expects the folder to have a subdirectory per class.
     """
 
     paths, labels, label_names = _get_paths_with_labels(folder, 
@@ -105,8 +110,8 @@ def load_data(folder, dformat=None, p_train=0.5, new_size=None, seed=None):
         test = None
     else:
         train, test = _split_data(paths, labels, p_train, seed)
-        train = _multi_load_img(train[0], train[1], new_size=new_size)
-        test = _multi_load_img(test[0], test[1], new_size=new_size)
+        train = _multi_load_img(train[0], train[1], new_size=new_size, scale=scale)
+        test = _multi_load_img(test[0], test[1], new_size=new_size, scale=scale)
 
     print train[0].shape    
 

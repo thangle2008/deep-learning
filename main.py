@@ -13,11 +13,12 @@ from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--data', dest='data', action='store', 
-                        choices=['bird', 'tinyimagenet', 'cifar10'], 
+                        choices=['bird', 'tinyimagenet', 'cifar10', 'car'], 
                         default='tinyimagenet')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--optimize', action='store_true')
+
 
 SEED = 28
 
