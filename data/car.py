@@ -122,11 +122,13 @@ def get_test_gen():
 
     # data generators
     test_datagen = ImageDataGenerator()
-    test_generator = test_datagen.flow(X_test, y_test, shuffle=False)
+    test_generator = test_datagen.flow(X_test, y_test, 
+        batch_size=1, shuffle=False)
 
 
     # generators with transformations
     test_generator = get_augmented_generator(test_generator, 
         test_transform, new_size=CROP_DIM)
 
-    return test_generator
+
+    return test_generator, X_test.shape[0]

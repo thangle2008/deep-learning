@@ -3,6 +3,7 @@ import numpy as np
 import importlib
 
 from tools import train as Trainer
+from tools import test as Tester
 
 import keras
 import keras.backend as K
@@ -18,6 +19,8 @@ parser.add_argument('--data', dest='data', action='store',
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--optimize', action='store_true')
+parser.add_argument('--test', action='store_true')
+parser.add_argument('--classifier', action='store')
 
 
 SEED = 28
@@ -47,10 +50,13 @@ if __name__ == '__main__':
 
     data_module = importlib.import_module('data.{}'.format(args.data))
 
-    train, val, metadata = data_module.get_data_gen()
-
     opt = None
     if hasattr(data_module, 'get_optimizer'):
         opt = data_module.get_optimizer()
 
-    Trainer.run(args.model, train, val, metadata, opt=opt, num_epochs=args.epochs)
+    if args.test:
+        test_gen, data_size = data_module.get_test_gen()
+        Tester.evaluate(args.classifier, test_gen, data_size)
+    else:
+        train, val, metadata = data_module.get_data_gen()
+        Trainer.run(args.model, train, val, metadata, opt=opt, num_epochs=args.epochs)
