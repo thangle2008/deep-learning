@@ -16,7 +16,7 @@ from models.resnet import ResnetBuilder
 from models import vgg16
 
 
-def run(model, train, val, metadata, opt=None, batch_size=32, num_epochs=100):
+def run(model, train, val, metadata, opt, batch_size=32, num_epochs=100):
     """
     Train a classifier with the provided training and validation data.
     The model must be a compiled keras model.
@@ -46,10 +46,10 @@ def run(model, train, val, metadata, opt=None, batch_size=32, num_epochs=100):
     elif model == 'vgg16':
         model = vgg16.build_model((dim, dim, 3), num_classes)
 
-    if opt is None:
-        optimizer = keras.optimizers.Adam()
+    if opt['algo'] == 'sgd':
+        optimizer = keras.optimizers.SGD(**opt['params'])
     else:
-        optimizer = keras.optimizers.SGD(**opt)
+        optimizer = keras.optimizers.Adam()
 
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',

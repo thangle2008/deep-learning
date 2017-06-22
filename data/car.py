@@ -20,10 +20,10 @@ LOAD_DIM = 256
 CROP_DIM = 224
 
 
-def split_to_classes(folder, annotation_file):
+def distribute_images(folder, annotation_file):
     """
     Split a folder of images to a subdirectory per class 
-    based on a MATLAB annotation file.
+    based on an annotation file.
     """
     # get annotations
     annotations = sio.loadmat(annotation_file)['annotations'][0]

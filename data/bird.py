@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from functools import partial
 
@@ -7,7 +8,14 @@ from keras.utils import to_categorical
 
 from .helpers import get_transform, get_augmented_generator
 from utils.imgprocessing import meanstd, center_crop, random_crop
-from utils.imgloader import load_data
+
+
+mean = np.asarray([81.2651068 , 156.35841347, 126.5182145], dtype=K.floatx())
+std = np.asarray([66.50549267, 55.71497419, 50.10397097], dtype=K.floatx())
+
+LOAD_DIM = 140
+CROP_DIM = TRAIN_DIM = 128
+URL = './data/images/all_years_140x140'
 
 
 def get_data_gen():
@@ -15,34 +23,16 @@ def get_data_gen():
     Return train and val generators that give data in batches,
     and data label names.
     """
-
-    # load data
-    (X_train, y_train), (X_val, y_val), label_names = load_data(
-        './data/images/all_years_342x256', new_size=256, p_train=0.8, seed=28)
-
-
-    X_train = K.cast_to_floatx(X_train)
-    X_val = K.cast_to_floatx(X_val)
-
-    y_train = to_categorical(y_train)
-    y_val = to_categorical(y_val)
-
-
     # define preprocessing pipeline
-    mean = np.asarray([66.50691593, 159.22152607, 125.28014714], dtype=K.floatx())
-    std = np.asarray([67.49946853, 57.54205911, 52.35912736], dtype=K.floatx())
-
-
     train_transform = get_transform(
         partial(meanstd, mean=mean, std=std),
-        partial(random_crop, new_size=224)
+        partial(random_crop, new_size=CROP_DIM)
     )
 
     val_transform = get_transform(
         partial(meanstd, mean=mean, std=std),
-        partial(center_crop, new_size=224)
+        partial(center_crop, new_size=CROP_DIM)
     )
-
 
     # data generators
     train_datagen = ImageDataGenerator(
@@ -52,23 +42,46 @@ def get_data_gen():
     )
     val_datagen = ImageDataGenerator()
 
-    train_generator = train_datagen.flow(X_train, y_train, 
+    train_generator = train_datagen.flow_from_directory(
+        os.path.join(URL, 'train'), target_size=(LOAD_DIM, LOAD_DIM),
         shuffle=True, seed=28)
-    val_generator = val_datagen.flow(X_val, y_val, shuffle=False)
-
-
-    # generators with transformations
-    train_generator = get_augmented_generator(train_generator, 
-        train_transform, new_size=224)
-    val_generator = get_augmented_generator(val_generator, 
-        val_transform, new_size=224)
+    val_generator = val_datagen.flow_from_directory(
+        os.path.join(URL, 'val'), target_size=(LOAD_DIM, LOAD_DIM),
+        shuffle=False)
 
 
     metadata = {
-        'label_names': label_names,
-        'num_train_samples': X_train.shape[0],
-        'num_val_samples': X_val.shape[0],
-        'dim': 224
+        'label_names': train_generator.class_indices,
+        'num_train_samples': train_generator.n,
+        'num_val_samples': val_generator.n,
+        'dim': TRAIN_DIM
     }
 
+    # generators with transformations
+    train_generator = get_augmented_generator(train_generator, 
+        train_transform, new_size=TRAIN_DIM)
+    val_generator = get_augmented_generator(val_generator, 
+        val_transform, new_size=TRAIN_DIM)
+
     return (train_generator, val_generator, metadata)
+
+
+def get_test_gen():
+
+    val_transform = get_transform(
+        partial(meanstd, mean=mean, std=std),
+        partial(center_crop, new_size=CROP_DIM)
+    )
+
+    val_datagen = ImageDataGenerator()
+
+    val_generator = val_datagen.flow_from_directory(
+        os.path.join(URL, 'test'), target_size=(LOAD_DIM, LOAD_DIM),
+        shuffle=False)
+
+    num_samples = val_generator.n
+
+    val_generator = get_augmented_generator(val_generator, 
+        val_transform, new_size=TRAIN_DIM)
+
+    return (val_generator, num_samples)

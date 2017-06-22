@@ -17,6 +17,8 @@ parser.add_argument('--data', dest='data', action='store',
                         choices=['bird', 'tinyimagenet', 'cifar10', 'car'], 
                         default='tinyimagenet')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
+parser.add_argument('--algo', dest='algo', action='store', default='adam')
+parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--optimize', action='store_true')
 parser.add_argument('--test', action='store_true')
@@ -50,9 +52,20 @@ if __name__ == '__main__':
 
     data_module = importlib.import_module('data.{}'.format(args.data))
 
-    opt = None
-    if hasattr(data_module, 'get_optimizer'):
-        opt = data_module.get_optimizer()
+
+    if args.algo == 'sgd':
+        opt = {
+            'algo': args.algo,
+            'params': {
+                'nesterov': True,
+                'lr': args.lr,
+                'decay': 1e-6,
+                'momentum': 0.9
+            }
+        }
+    else:
+        opt = {'algo': 'adam'}
+
 
     if args.test:
         test_gen, data_size = data_module.get_test_gen()

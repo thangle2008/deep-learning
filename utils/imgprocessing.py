@@ -4,6 +4,7 @@ import random
 
 import numpy as np
 from scipy.misc import imresize
+import skimage.transform
 
 
 def meanstd(img, mean=None, std=None):
@@ -57,6 +58,16 @@ def random_crop(img, new_size, img_format='channels_last'):
         return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
     else:
         return img[:, h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+
+
+def scale(img, new_size):
+    """
+    Scale an image to the given size.
+    """
+    img = skimage.transform.resize(img, (new_size, new_size), 
+        preserve_range=True)
+    
+    return img
 
 
 def horizontal_flip(img, f=0.5, img_format='channels_last'):

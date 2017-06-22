@@ -20,8 +20,7 @@ def get_transform(*functions):
 
 def get_augmented_generator(gen, transform_func, new_size=None):
     """
-    Return a new generator that yields batches from 
-    a given generator with specified transformations.
+    Yield batches from a given generator with specified transformations.
     """
 
     for X_batch, y_batch in gen:
