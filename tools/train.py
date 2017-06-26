@@ -16,7 +16,7 @@ from models.resnet import ResnetBuilder
 from models import vgg16
 
 
-def run(model, train, val, metadata, opt, batch_size=32, num_epochs=100):
+def run(model, train, val, opt, batch_size=32, num_epochs=100):
     """
     Train a classifier with the provided training and validation data.
     The model must be a compiled keras model.
@@ -25,10 +25,10 @@ def run(model, train, val, metadata, opt, batch_size=32, num_epochs=100):
     random.seed(28)
 
     # extract metadata
-    num_train_samples = metadata['num_train_samples']
-    num_val_samples = metadata['num_val_samples']
-    num_classes = len(metadata['label_names'])
-    dim = metadata['dim']
+    num_train_samples = train.n
+    num_val_samples = val.n
+    num_classes = len(train.label_names)
+    dim = train.output_shape[0]
 
     # callbacks list
     model_checkpoint = ModelCheckpoint(

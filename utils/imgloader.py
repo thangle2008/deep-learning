@@ -8,7 +8,7 @@ from scipy.misc import imread, imresize
 from .imgprocessing import resize_and_crop
 
 
-def _get_paths_with_labels(folder):
+def get_paths_with_labels(folder):
     """
     Returns list of file paths by classes in a given directory.
     The directory is expected to have a subdirectory per class.
@@ -92,7 +92,7 @@ def load_data(folder, p_train=0.5, new_size=None,
     Expects the folder to have a subdirectory per class.
     """
 
-    paths, labels, label_names = _get_paths_with_labels(folder)
+    paths, labels, label_names = get_paths_with_labels(folder)
 
     paths = np.asarray(paths)
     labels = np.asarray(labels)

@@ -68,8 +68,8 @@ if __name__ == '__main__':
 
 
     if args.test:
-        test_gen, data_size = data_module.get_test_gen()
-        Tester.evaluate(args.classifier, test_gen, data_size)
+        test_gen = data_module.get_test_gen('test')
+        Tester.evaluate(args.classifier, test_gen)
     else:
-        train, val, metadata = data_module.get_data_gen()
-        Trainer.run(args.model, train, val, metadata, opt=opt, num_epochs=args.epochs)
+        train, val = data_module.get_data_gen()
+        Trainer.run(args.model, train, val, opt=opt, num_epochs=args.epochs)

@@ -19,45 +19,39 @@ def meanstd(img, mean=None, std=None):
     return img
 
 
-def crop(img, new_size, method='center', img_format='channels_last'):
+def crop(img, new_size, method='center'):
     """Crop an image to a new size."""
     if method == 'center':
-        return center_crop(img, new_size, img_format)
+        return center_crop(img, new_size)
     elif method == 'random':
-        return random_crop(img, new_size, img_format)
+        return random_crop(img, new_size)
     else:
         raise ValueError
 
 
-def center_crop(img, new_size, img_format='channels_last'):
+def center_crop(img, new_size):
     """
     Crop an image at the center. Assume that both dims are not 
     less than new size.
     """
-    h, w = img.shape[:2] if img_format == 'channels_last' else img.shape[1:]
+    h, w = img.shape[:2] 
 
     h_offset = int(math.ceil((h - new_size) / 2))
     w_offset = int(math.ceil((w - new_size) / 2))
 
-    if img_format == 'channels_last':
-        return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
-    else:
-        return img[:, h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+    return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
 
-def random_crop(img, new_size, img_format='channels_last'):
+def random_crop(img, new_size):
     """
     Randomly choose a region from an image to crop from.
     """
-    h, w = img.shape[:2] if img_format == 'channels_last' else img.shape[1:]
+    h, w = img.shape[:2]
 
     h_offset = random.randint(0, h-new_size)
     w_offset = random.randint(0, w-new_size)
 
-    if img_format == 'channels_last':
-        return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
-    else:
-        return img[:, h_offset:h_offset+new_size, w_offset:w_offset+new_size]
+    return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
 
 def scale(img, new_size):
@@ -70,13 +64,13 @@ def scale(img, new_size):
     return img
 
 
-def horizontal_flip(img, f=0.5, img_format='channels_last'):
+def horizontal_flip(img, f=0.5):
     """
     Randomly flip an image horizontally.
     """
     num = random.random()
     if num >= f:
-        img = img[:, ::-1] if img_format == 'channels_last' else img[:, :, ::-1]
+        img = img[:, ::-1]
     return img
 
 
@@ -97,26 +91,3 @@ def resize_and_crop(img, new_size, interp='bicubic'):
 
     # crop the image to the new size
     return center_crop(new_img, new_size)
-
-
-class ImgDataPreprocessing:
-
-    def __init__(self, centered=False, standardized=False):
-        self._centered = centered
-        self._standardized = standardized
-        self.mean = None
-        self.std = None
-
-
-    def process(self, data):
-        data = data.astype(np.float64)
-
-        if self._centered:
-            self.mean = np.mean(data, axis=(0, 1, 2)) # compute means across color channels
-            mean = self.mean.reshape((1, 1, 3))
-            data -= mean
-
-        if self._standardized:
-            self.std = np.std(data, axis=(0, 1, 2))
-            std = self.std.reshape((1, 1, 3))
-            data /= std

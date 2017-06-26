@@ -1,9 +1,11 @@
+from __future__ import division
+
+import math
 import keras
 
-def evaluate(model, test_gen, data_size):
+def evaluate(model, test_gen):
     """
-    Evaluate a given model with a generator that yields one sample with 
-    its true label at a time.
+    Evaluate a given model with a generator.
     """
 
     # load model and add metrics
@@ -12,4 +14,5 @@ def evaluate(model, test_gen, data_size):
     model.compile(model.optimizer, model.loss, 
         metrics=['accuracy', keras.metrics.top_k_categorical_accuracy])
 
-    print model.evaluate_generator(test_gen, data_size)
+    steps = math.ceil(test_gen.n / test_gen.batch_size)
+    print model.evaluate_generator(test_gen, steps)
