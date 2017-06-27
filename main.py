@@ -59,7 +59,6 @@ if __name__ == '__main__':
             'params': {
                 'nesterov': True,
                 'lr': args.lr,
-                'decay': 1e-6,
                 'momentum': 0.9
             }
         }

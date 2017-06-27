@@ -109,8 +109,7 @@ class DirectoryDataGenerator(object):
 
         paths, labels = self.paths[indices], self.labels[indices]
 
-        x_batch = np.zeros((batch_size,) + self.output_shape, 
-            dtype=K.floatx())
+        x_batch = np.zeros((batch_size,) + self.output_shape, dtype=K.floatx())
 
         for idx in xrange(len(paths)):
             img = imread(paths[idx], mode='RGB')

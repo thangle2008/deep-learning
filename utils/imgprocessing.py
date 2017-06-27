@@ -6,6 +6,8 @@ import numpy as np
 from scipy.misc import imresize
 import skimage.transform
 
+from keras.preprocessing.image import ImageDataGenerator
+
 
 def meanstd(img, mean=None, std=None):
     """Centralize and normalize an image."""
@@ -69,7 +71,7 @@ def horizontal_flip(img, f=0.5):
     Randomly flip an image horizontally.
     """
     num = random.random()
-    if num >= f:
+    if num < f:
         img = img[:, ::-1]
     return img
 
@@ -91,3 +93,23 @@ def resize_and_crop(img, new_size, interp='bicubic'):
 
     # crop the image to the new size
     return center_crop(new_img, new_size)
+
+
+def width_shift(img, shift_range):
+    """
+    Shift the image horizontally.
+    """
+
+    datagen = ImageDataGenerator(width_shift_range=shift_range)
+    img_batch = img.reshape((1,) + img.shape)
+    return next(datagen.flow(img_batch, batch_size=1, shuffle=False))[0]
+
+
+def height_shift(img, shift_range):
+    """
+    Shift the image vertically.
+    """
+
+    datagen = ImageDataGenerator(height_shift_range=shift_range)
+    img_batch = img.reshape((1,) + img.shape)
+    return next(datagen.flow(img_batch, batch_size=1, shuffle=False))[0]
