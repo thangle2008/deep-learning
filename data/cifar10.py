@@ -59,3 +59,19 @@ def get_data_gen():
     train_generator.label_names = label_names
 
     return (train_generator, val_generator)
+
+
+def get_test_gen(dtype='val'):
+
+    _, (X_val, y_val) = cifar10.load_data()
+
+    X_val = K.cast_to_floatx(X_val)
+    y_val = to_categorical(y_val)
+
+    X_val -= mean
+    X_val /= std
+
+    val_datagen = ImageDataGenerator()
+    val_generator = val_datagen.flow(X_val, y_val, shuffle=False)
+
+    return val_generator

@@ -16,7 +16,7 @@ from models.resnet import ResnetBuilder
 from models import vgg16
 
 
-def run(model, train, val, opt, batch_size=32, num_epochs=100):
+def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
     """
     Train a classifier with the provided training and validation data.
     The model must be a compiled keras model.
@@ -34,17 +34,26 @@ def run(model, train, val, opt, batch_size=32, num_epochs=100):
     model_checkpoint = ModelCheckpoint(
         'weights.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
     reduce_lr = ReduceLROnPlateau(
-        factor=np.sqrt(0.1), patience=5, verbose=1, min_lr=0.5e-6)
+        factor=np.sqrt(0.1), patience=3, verbose=1)
     early_stop = EarlyStopping(min_delta=0.001, patience=10)
     csv_logger = CSVLogger('{}_{}.csv'.format(model, num_classes))
 
     
     # load model
     print "Load model..."
+    
     if model == 'resnet':
-        model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
+        depth = kwargs['depth']
+        if depth == 18:
+            model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
+        elif depth == 20:
+            model = ResnetBuilder.build_resnet_20((3, dim, dim), num_classes)
+        else:
+            raise ValueError
+
     elif model == 'vgg16':
         model = vgg16.build_model((dim, dim, 3), num_classes)
+
 
     if opt['algo'] == 'sgd':
         optimizer = keras.optimizers.SGD(**opt['params'])

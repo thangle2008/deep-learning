@@ -1,4 +1,6 @@
-# Code taken from https://github.com/raghakot/keras-resnet
+# Adapt from https://github.com/raghakot/keras-resnet
+# add support for shortcut option A and smaller Resnet architecture
+# for training CIFAR10 based on the original Deep Residual Learning paper
 
 from __future__ import division
 
@@ -8,14 +10,15 @@ from keras.layers import (
     Input,
     Activation,
     Dense,
-    Flatten
+    Flatten,
+    Lambda
 )
 from keras.layers.convolutional import (
     Conv2D,
     MaxPooling2D,
     AveragePooling2D
 )
-from keras.layers.merge import add
+from keras.layers.merge import add, multiply, concatenate
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 from keras import backend as K
@@ -82,14 +85,25 @@ def _shortcut(input, residual):
     equal_channels = input_shape[CHANNEL_AXIS] == residual_shape[CHANNEL_AXIS]
 
     shortcut = input
-    # 1 X 1 conv if shape is different. Else identity.
+    
+    # if shape is different. 
     if stride_width > 1 or stride_height > 1 or not equal_channels:
-        shortcut = Conv2D(filters=residual_shape[CHANNEL_AXIS],
-                          kernel_size=(1, 1),
-                          strides=(stride_width, stride_height),
-                          padding="valid",
-                          kernel_initializer="he_normal",
-                          kernel_regularizer=l2(0.0001))(input)
+        if SHORTCUT_OPTION == 'B':
+            # 1x1 convolution to match dimension
+            shortcut = Conv2D(filters=residual_shape[CHANNEL_AXIS],
+                              kernel_size=(1, 1),
+                              strides=(stride_width, stride_height),
+                              padding="valid",
+                              kernel_initializer="he_normal",
+                              kernel_regularizer=l2(0.0001))(input)
+        elif SHORTCUT_OPTION == 'A':
+            # spatial pooling with padded identity mapping
+            x = AveragePooling2D(pool_size=(1, 1),
+                                 strides=(stride_width, stride_height))(input)
+            # multiply every element of x by 0 to get zero matrix
+            mul_zero = Lambda(lambda x: x * 0.0)(x)
+
+            shortcut = concatenate([x, mul_zero], axis=CHANNEL_AXIS)
 
     return add([shortcut, residual])
 
@@ -159,6 +173,14 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
     return f
 
 
+def _handle_shortcut_option(option='B'):
+    global SHORTCUT_OPTION
+
+    if option not in ['A', 'B']:
+        raise ValueError
+    else: SHORTCUT_OPTION = option
+
+
 def _handle_dim_ordering():
     global ROW_AXIS
     global COL_AXIS
@@ -184,7 +206,8 @@ def _get_block(identifier):
 
 class ResnetBuilder(object):
     @staticmethod
-    def build(input_shape, num_outputs, block_fn, repetitions):
+    def build(input_shape, num_outputs, block_fn, repetitions, base_filters=64,
+              shortcut_option='B'):
         """Builds a custom ResNet like architecture.
 
         Args:
@@ -199,6 +222,8 @@ class ResnetBuilder(object):
             The keras `Model`.
         """
         _handle_dim_ordering()
+        _handle_shortcut_option(shortcut_option)
+
         if len(input_shape) != 3:
             raise Exception("Input shape should be a tuple (nb_channels, nb_rows, nb_cols)")
 
@@ -210,13 +235,25 @@ class ResnetBuilder(object):
         block_fn = _get_block(block_fn)
 
         input = Input(shape=input_shape)
-        conv1 = _conv_bn_relu(filters=64, kernel_size=(7, 7), strides=(2, 2))(input)
-        pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding="same")(conv1)
 
-        block = pool1
-        filters = 64
+
+        # set up first layer
+        if len(repetitions) == 4:
+            # Resnet for imagenet
+            conv1 = _conv_bn_relu(filters=base_filters, kernel_size=(7, 7), strides=(2, 2))(input)
+            pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding="same")(conv1)
+            block = pool1
+        elif len(repetitions):
+            # Resnet for cifar10
+            conv1 = _conv_bn_relu(filters=base_filters, kernel_size=(3, 3), strides=(1, 1))(input)
+            block = conv1
+
+
+        # add residual blocks
+        filters = base_filters
         for i, r in enumerate(repetitions):
-            block = _residual_block(block_fn, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
+            block = _residual_block(block_fn, filters=filters, repetitions=r, 
+                                    is_first_layer=(i == 0))(block)
             filters *= 2
 
         # Last activation
@@ -234,12 +271,14 @@ class ResnetBuilder(object):
         return model
 
     @staticmethod
-    def build_resnet_18(input_shape, num_outputs):
-        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2])
+    def build_resnet_18(input_shape, num_outputs, shortcut_option='B'):
+        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2],
+                                   shortcut_option=shortcut_option)
 
     @staticmethod
-    def build_resnet_34(input_shape, num_outputs):
-        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 4, 6, 3])
+    def build_resnet_34(input_shape, num_outputs, shortcut_option='B'):
+        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 4, 6, 3],
+                                   shortcut_option=shortcut_option)
 
     @staticmethod
     def build_resnet_50(input_shape, num_outputs):
@@ -252,3 +291,9 @@ class ResnetBuilder(object):
     @staticmethod
     def build_resnet_152(input_shape, num_outputs):
         return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 8, 36, 3])
+
+    @staticmethod
+    def build_resnet_20(input_shape, num_outputs, shortcut_option='A'):
+        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 3, 3],
+                                   base_filters=16, shortcut_option=shortcut_option)
+

@@ -70,19 +70,29 @@ def get_data_gen():
         partial(horizontal_flip, f=0.5),
         partial(random_crop, new_size=CROP_DIM),
         partial(meanstd, mean=mean, std=std),
-        #partial(scale, new_size=TRAIN_DIM),
-    ]
-        
-    val_transforms = [
-        partial(center_crop, new_size=CROP_DIM),
-        partial(meanstd, mean=mean, std=std),
-    ]
+    ]    
 
     # data generators
     train_generator = DirectoryDataGenerator(
         os.path.join(URL, 'train'), train_transforms, shuffle=True)
 
-    val_generator = DirectoryDataGenerator(
-        os.path.join(URL, 'val', 'images'), val_transforms, shuffle=False)
+    val_generator = get_test_gen('val')
 
     return (train_generator, val_generator)
+
+
+def get_test_gen(datatype):
+
+    if datatype == 'train':
+        path = os.path.join(URL, 'train')
+    else:
+        path = os.path.join(URL, datatype, 'images')
+
+    transforms = [
+        partial(center_crop, new_size=CROP_DIM),
+        partial(meanstd, mean=mean, std=std),
+    ]
+
+    generator = DirectoryDataGenerator(path, transforms, shuffle=False)
+
+    return generator

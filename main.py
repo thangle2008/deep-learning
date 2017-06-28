@@ -13,15 +13,21 @@ from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
 
 parser = argparse.ArgumentParser()
 
+# for training
 parser.add_argument('--data', dest='data', action='store', 
                         choices=['bird', 'tinyimagenet', 'cifar10', 'car'], 
                         default='tinyimagenet')
 parser.add_argument('--model', dest='model', action='store', default='resnet')
 parser.add_argument('--algo', dest='algo', action='store', default='adam')
 parser.add_argument('--lr', type=float, default=0.1)
-parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--optimize', action='store_true')
-parser.add_argument('--test', action='store_true')
+
+# for resnet
+parser.add_argument('--depth', type=int, default=18)
+
+# for testing
+parser.add_argument('--evaluate', action='store', choices=['train', 'val', 'test'])
 parser.add_argument('--classifier', action='store')
 
 
@@ -66,9 +72,11 @@ if __name__ == '__main__':
         opt = {'algo': 'adam'}
 
 
-    if args.test:
-        test_gen = data_module.get_test_gen('test')
+    if args.evaluate is not None:
+        test_gen = data_module.get_test_gen(args.evaluate)
         Tester.evaluate(args.classifier, test_gen)
     else:
         train, val = data_module.get_data_gen()
-        Trainer.run(args.model, train, val, opt=opt, num_epochs=args.epochs)
+
+        Trainer.run(args.model, train, val, opt=opt, num_epochs=args.epochs, 
+                    depth=args.depth)

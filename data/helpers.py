@@ -106,7 +106,6 @@ class DirectoryDataGenerator(object):
             batch_size = self.batch_size
 
         indices = self.indices[self.batch_idx : self.batch_idx+batch_size]
-
         paths, labels = self.paths[indices], self.labels[indices]
 
         x_batch = np.zeros((batch_size,) + self.output_shape, dtype=K.floatx())
