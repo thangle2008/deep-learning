@@ -18,10 +18,17 @@ from keras.layers.convolutional import (
     MaxPooling2D,
     AveragePooling2D
 )
-from keras.layers.merge import add, multiply, concatenate
+from keras.layers.merge import add, concatenate
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
 from keras import backend as K
+
+
+# global variables
+SHORTCUT_OPTION = 'B'
+ROW_AXIS = 0
+COL_AXIS = 1
+CHANNEL_AXIS = 2
 
 
 def _bn_relu(input):
@@ -101,7 +108,7 @@ def _shortcut(input, residual):
             x = AveragePooling2D(pool_size=(1, 1),
                                  strides=(stride_width, stride_height))(input)
             # multiply every element of x by 0 to get zero matrix
-            mul_zero = Lambda(lambda x: x * 0.0)(x)
+            mul_zero = Lambda(lambda val: val * 0.0)(x)
 
             shortcut = concatenate([x, mul_zero], axis=CHANNEL_AXIS)
 
@@ -116,8 +123,10 @@ def _residual_block(block_function, filters, repetitions, is_first_layer=False):
             init_strides = (1, 1)
             if i == 0 and not is_first_layer:
                 init_strides = (2, 2)
-            input = block_function(filters=filters, init_strides=init_strides,
-                                   is_first_block_of_first_layer=(is_first_layer and i == 0))(input)
+            input = block_function(filters=filters,
+                                   init_strides=init_strides,
+                                   is_first_block_of_first_layer=(is_first_layer and i == 0)
+                                   )(input)
         return input
 
     return f
@@ -178,7 +187,8 @@ def _handle_shortcut_option(option='B'):
 
     if option not in ['A', 'B']:
         raise ValueError
-    else: SHORTCUT_OPTION = option
+    else:
+        SHORTCUT_OPTION = option
 
 
 def _handle_dim_ordering():
@@ -205,18 +215,28 @@ def _get_block(identifier):
 
 
 class ResnetBuilder(object):
+
     @staticmethod
     def build(input_shape, num_outputs, block_fn, repetitions, base_filters=64,
-              shortcut_option='B'):
+              shortcut_option='B', downsampling_top=True):
         """Builds a custom ResNet like architecture.
 
         Args:
-            input_shape: The input shape in the form (nb_channels, nb_rows, nb_cols)
+            input_shape: The input shape in the form (nb_channels, nb_rows,
+                nb_cols)
             num_outputs: The number of outputs at final softmax layer
-            block_fn: The block function to use. This is either `basic_block` or `bottleneck`.
-                The original paper used basic_block for layers < 50
+            block_fn: The block function to use. This is either `basic_block` or
+                `bottleneck`. The original paper used basic_block for layers < 50
             repetitions: Number of repetitions of various block units.
-                At each block unit, the number of filters are doubled and the input size is halved
+                At each block unit, the number of filters are doubled and the
+                input size is halved
+            base_filters: The number of filters that the first residual block has.
+            shortcut_option: The shortcut option to use in the original paper.
+                Either 'A' (identity map with padded zeros) or 'B' (convolutional
+                map).
+            downsampling_top: Whether to include the max pooling after the first
+                convolutional layer (that layer also has stride of 2 if this
+                is set to True)
 
         Returns:
             The keras `Model`.
@@ -225,7 +245,8 @@ class ResnetBuilder(object):
         _handle_shortcut_option(shortcut_option)
 
         if len(input_shape) != 3:
-            raise Exception("Input shape should be a tuple (nb_channels, nb_rows, nb_cols)")
+            raise Exception("Input shape should be a tuple (nb_channels, "
+                            "nb_rows, nb_cols)")
 
         # Permute dimension order if necessary
         if K.image_data_format() == 'channels_last':
@@ -236,18 +257,20 @@ class ResnetBuilder(object):
 
         input = Input(shape=input_shape)
 
-
         # set up first layer
-        if len(repetitions) == 4:
-            # Resnet for imagenet
-            conv1 = _conv_bn_relu(filters=base_filters, kernel_size=(7, 7), strides=(2, 2))(input)
-            pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding="same")(conv1)
+        if downsampling_top:
+            # This is based on the original Resnet for tinyimagenet
+            conv1 = _conv_bn_relu(filters=base_filters, kernel_size=(7, 7),
+                                  strides=(2, 2))(input)
+            pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2),
+                                 padding="same")(conv1)
             block = pool1
-        elif len(repetitions):
-            # Resnet for cifar10
-            conv1 = _conv_bn_relu(filters=base_filters, kernel_size=(3, 3), strides=(1, 1))(input)
+        else:
+            # This is based on the Resnet for Cifar10, which does not contain
+            # the pooling layer
+            conv1 = _conv_bn_relu(filters=base_filters, kernel_size=(3, 3),
+                                  strides=(1, 1))(input)
             block = conv1
-
 
         # add residual blocks
         filters = base_filters
@@ -261,7 +284,8 @@ class ResnetBuilder(object):
 
         # Classifier block
         block_shape = K.int_shape(block)
-        pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS], block_shape[COL_AXIS]),
+        pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS],
+                                            block_shape[COL_AXIS]),
                                  strides=(1, 1))(block)
         flatten1 = Flatten()(pool2)
         dense = Dense(units=num_outputs, kernel_initializer="he_normal",
@@ -271,29 +295,32 @@ class ResnetBuilder(object):
         return model
 
     @staticmethod
-    def build_resnet_18(input_shape, num_outputs, shortcut_option='B'):
-        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2],
-                                   shortcut_option=shortcut_option)
+    def build_resnet(input_shape, num_outputs, depth=18, shortcut_option='B',
+                     base_filters=64, downsampling_top=True):
 
-    @staticmethod
-    def build_resnet_34(input_shape, num_outputs, shortcut_option='B'):
-        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 4, 6, 3],
-                                   shortcut_option=shortcut_option)
+        params = locals()
 
-    @staticmethod
-    def build_resnet_50(input_shape, num_outputs):
-        return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 6, 3])
+        # number of residual blocks for each depth
+        num_blocks = {
+            18: [2, 2, 2, 2],
+            20: [3, 3, 3],
+            34: [3, 4, 6, 3],
+            50: [3, 4, 6, 3],
+            101: [3, 4, 23, 3],
+            152: [3, 8, 36, 3]
+        }
 
-    @staticmethod
-    def build_resnet_101(input_shape, num_outputs):
-        return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 23, 3])
+        if depth not in num_blocks.keys():
+            raise ValueError("Depth is not valid.")
 
-    @staticmethod
-    def build_resnet_152(input_shape, num_outputs):
-        return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 8, 36, 3])
+        print "Build Resnet with ", params
 
-    @staticmethod
-    def build_resnet_20(input_shape, num_outputs, shortcut_option='A'):
-        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 3, 3],
-                                   base_filters=16, shortcut_option=shortcut_option)
+        block_function = basic_block
+        if depth > 34:
+            block_function = bottleneck
 
+        return ResnetBuilder.build(input_shape, num_outputs,
+                                   block_function, num_blocks[depth],
+                                   base_filters=base_filters,
+                                   shortcut_option=shortcut_option,
+                                   downsampling_top=downsampling_top)

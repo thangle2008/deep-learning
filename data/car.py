@@ -1,12 +1,13 @@
-import os
+import os, shutil
 import numpy as np
+import scipy.io as sio
 from functools import partial
 
 import keras.backend as K
-from keras.utils import to_categorical
 
-from .helpers import DirectoryDataGenerator
-from utils.imgprocessing import meanstd, center_crop, random_crop, horizontal_flip
+from utils.datagen import DirectoryDataGenerator
+from utils.imgprocessing import (meanstd, center_crop, random_crop,
+                                 horizontal_flip)
 
 
 mean = np.asarray([119.26753706, 115.92306357, 116.10504895], dtype=K.floatx())
@@ -59,7 +60,7 @@ def get_data_gen():
 
     val_generator = get_test_gen('val')
 
-    return (train_generator, val_generator)
+    return train_generator, val_generator
 
 
 def get_test_gen(datatype='val'):

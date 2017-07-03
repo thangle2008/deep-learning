@@ -1,16 +1,11 @@
 from __future__ import division
 
 import random
-import json
 import numpy as np
 
 import keras
-import keras.backend as K
-from keras.callbacks import (ModelCheckpoint, ReduceLROnPlateau, 
-                             EarlyStopping, CSVLogger)
-from keras.preprocessing.image import ImageDataGenerator
-
-from utils.imgprocessing import crop, horizontal_flip
+from keras.callbacks import (ModelCheckpoint, ReduceLROnPlateau, CSVLogger,
+                             EarlyStopping)
 
 from models.resnet import ResnetBuilder
 from models import vgg16
@@ -34,26 +29,17 @@ def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
     model_checkpoint = ModelCheckpoint(
         'weights.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
     reduce_lr = ReduceLROnPlateau(
-        factor=np.sqrt(0.1), patience=3, verbose=1)
-    early_stop = EarlyStopping(min_delta=0.001, patience=10)
+        factor=np.sqrt(0.1), patience=5, verbose=1)
+    early_stop = EarlyStopping(min_delta=0.001, patience=11)
     csv_logger = CSVLogger('{}_{}.csv'.format(model, num_classes))
 
-    
     # load model
     print "Load model..."
     
     if model == 'resnet':
-        depth = kwargs['depth']
-        if depth == 18:
-            model = ResnetBuilder.build_resnet_18((3, dim, dim), num_classes)
-        elif depth == 20:
-            model = ResnetBuilder.build_resnet_20((3, dim, dim), num_classes)
-        else:
-            raise ValueError
-
+        model = ResnetBuilder.build_resnet((3, dim, dim), num_classes, **kwargs)
     elif model == 'vgg16':
         model = vgg16.build_model((dim, dim, 3), num_classes)
-
 
     if opt['algo'] == 'sgd':
         optimizer = keras.optimizers.SGD(**opt['params'])
@@ -63,7 +49,6 @@ def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
     model.compile(optimizer=optimizer,
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
-
 
     print "Number of parameters =", model.count_params()
     print "Training samples =", num_train_samples

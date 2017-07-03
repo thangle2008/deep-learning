@@ -2,3 +2,6 @@
 **/images
 **/metadata
 /experiments
+
+# Pycharm
+.idea

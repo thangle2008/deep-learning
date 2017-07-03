@@ -1,4 +1,5 @@
-import os, re
+import os
+import re
 import multiprocessing
 
 import numpy as np
@@ -18,7 +19,6 @@ def get_paths_with_labels(folder):
     
     label_names = [] # class num to class name
 
-    class_name = None
     n_class = 0
     # get the file paths
     for root, dirnames, filenames in os.walk(folder):  
@@ -75,7 +75,7 @@ def _multi_load_img(paths, labels, new_size=None, scale=True):
     pool = multiprocessing.Pool()
     num_samples = len(paths)
     results = [pool.apply_async(_load_img, (paths[i], labels[i], new_size, scale)) 
-                    for i in xrange(num_samples)]
+               for i in xrange(num_samples)]
     imgs = [r.get() for r in results]
 
     X, y = zip(*imgs)

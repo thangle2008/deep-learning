@@ -1,9 +1,7 @@
-import random
 import numpy as np
 
 import keras.backend as K
 from keras.utils import to_categorical
-from keras.preprocessing.image import ImageDataGenerator
 
 from utils.imgloader import get_paths_with_labels
 
@@ -17,7 +15,6 @@ def get_transform(*functions):
     """
 
     def transform(img):
-
         for f in functions:
             img = f(img)
 
@@ -47,10 +44,11 @@ def get_augmented_generator(gen, transform_func, new_size=None):
 
 class DirectoryDataGenerator(object):
     """
-    Generator with transformation. 
+    Generator with transformation.
     """
 
-    def __init__(self, folder, transforms, shuffle=True, batch_size=32, seed=28):
+    def __init__(self, folder, transforms, shuffle=True, batch_size=32,
+                 seed=28):
 
         paths, labels, label_names = get_paths_with_labels(folder)
 
@@ -77,7 +75,6 @@ class DirectoryDataGenerator(object):
 
         self.reset()
 
-
     def reset(self):
         """
         Reset the generator to start another batch.
@@ -90,7 +87,6 @@ class DirectoryDataGenerator(object):
             np.random.seed(self.seed + self.num_batches_so_far)
             self.indices = np.random.permutation(self.n)
 
-
     def next(self):
         """
         Get the next batch.
@@ -98,14 +94,14 @@ class DirectoryDataGenerator(object):
 
         if self.batch_idx >= self.n:
             self.reset()
-        
+
         # incomplete batch
         if self.batch_idx + self.batch_size >= self.n:
             batch_size = self.n - self.batch_idx
         else:
             batch_size = self.batch_size
 
-        indices = self.indices[self.batch_idx : self.batch_idx+batch_size]
+        indices = self.indices[self.batch_idx:self.batch_idx + batch_size]
         paths, labels = self.paths[indices], self.labels[indices]
 
         x_batch = np.zeros((batch_size,) + self.output_shape, dtype=K.floatx())
@@ -117,5 +113,5 @@ class DirectoryDataGenerator(object):
             x_batch[idx] = img
 
         self.batch_idx += self.batch_size
-        
+
         return x_batch, labels

@@ -3,18 +3,17 @@ import numpy as np
 from functools import partial
 
 import keras.backend as K
-from keras.utils import to_categorical
 
-from .helpers import DirectoryDataGenerator
+from utils.datagen import DirectoryDataGenerator
 from utils.imgprocessing import meanstd, center_crop, random_crop, horizontal_flip
 
 
-mean = np.asarray([81.2651068 , 156.35841347, 126.5182145], dtype=K.floatx())
-std = np.asarray([66.50549267, 55.71497419, 50.10397097], dtype=K.floatx())
+mean = np.asarray([69.47252731, 160.22688271, 126.6051936], dtype=K.floatx())
+std = np.asarray([71.34189641, 57.88649865, 53.74540484], dtype=K.floatx())
 
-LOAD_DIM = 140
-CROP_DIM = TRAIN_DIM = 128
-URL = './data/images/all_years_140x140'
+LOAD_DIM = 256
+CROP_DIM = TRAIN_DIM = 224
+URL = './data/images/all_years_342x256'
 
 
 def get_data_gen():
@@ -35,7 +34,7 @@ def get_data_gen():
 
     val_generator = get_test_gen('val')
 
-    return (train_generator, val_generator)
+    return train_generator, val_generator
 
 
 def get_test_gen(datatype='val'):

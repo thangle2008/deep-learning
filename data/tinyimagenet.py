@@ -1,12 +1,12 @@
-import os, shutil
+import os
+import shutil
 
 import numpy as np
 from functools import partial
 
 import keras.backend as K
-from keras.utils import to_categorical
 
-from .helpers import DirectoryDataGenerator
+from utils.datagen import DirectoryDataGenerator
 from utils.imgprocessing import (meanstd, 
                                  center_crop, random_crop, 
                                  horizontal_flip, width_shift, height_shift)
@@ -78,7 +78,7 @@ def get_data_gen():
 
     val_generator = get_test_gen('val')
 
-    return (train_generator, val_generator)
+    return train_generator, val_generator
 
 
 def get_test_gen(datatype):

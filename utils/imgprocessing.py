@@ -2,7 +2,6 @@ from __future__ import division
 import math
 import random
 
-import numpy as np
 from scipy.misc import imresize
 import skimage.transform
 
