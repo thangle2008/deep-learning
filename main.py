@@ -94,14 +94,8 @@ if __name__ == '__main__':
 
     if args.evaluate is not None:
         test_gen = data_module.get_test_gen(args.evaluate, args.ten_crop)
-
-        if args.output_false is not None:
-            tester.get_wrong_predictions(args.classifier, test_gen,
-                                         test_gen.label_names,
-                                         args.output_false,
-                                         args.ten_crop)
-        else:
-            tester.evaluate(args.classifier, test_gen, args.ten_crop)
+        tester.evaluate(args.classifier, test_gen, args.ten_crop,
+                        output_dir=args.output_false)
 
     elif args.optimize:
         train, val = data_module.get_data_gen()
