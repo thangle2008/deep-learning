@@ -1,12 +1,14 @@
 from keras.models import Model
 from keras.applications.vgg16 import VGG16
 from keras.layers.core import Flatten, Dense, Dropout, Activation
-from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
 
-def build_model(input_shape=(224, 224, 3), num_classes=1000, weights='imagenet'):
 
-    builtin_model = VGG16(include_top=False, weights=weights, input_shape=input_shape)
+def build_model(input_shape=(224, 224, 3), num_classes=1000,
+                weights='imagenet'):
+
+    builtin_model = VGG16(include_top=False, weights=weights,
+                          input_shape=input_shape)
 
     x = builtin_model.output
 

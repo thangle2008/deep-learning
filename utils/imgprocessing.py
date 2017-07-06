@@ -2,6 +2,7 @@ from __future__ import division
 import math
 import random
 
+import numpy as np
 from scipy.misc import imresize
 import skimage.transform
 
@@ -43,6 +44,26 @@ def center_crop(img, new_size):
     return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
 
+def ten_crop(img, new_size):
+
+    img_list = [
+        img[0:new_size, 0:new_size],  # top left corner
+        img[0:new_size, -new_size:],  # top right corner
+        img[-new_size:, 0:new_size],  # bottom left corner
+        img[-new_size:, -new_size:],  # bottom right corner
+        center_crop(img, new_size)    # center
+    ]
+
+    res = []
+
+    # get the horizontal flip
+    for img in img_list:
+        res.append(img)
+        res.append(img[:, ::-1])
+
+    return np.asarray(res)
+
+
 def random_crop(img, new_size):
     """
     Randomly choose a region from an image to crop from.
@@ -60,7 +81,7 @@ def scale(img, new_size):
     Scale an image to the given size.
     """
     img = skimage.transform.resize(img, (new_size, new_size), 
-        preserve_range=True)
+                                   preserve_range=True)
     
     return img
 
@@ -84,7 +105,6 @@ def resize_and_crop(img, new_size, interp='bicubic'):
     aspect_ratio = h / w
 
     # resize the smaller dim to new size and keep aspect ratio
-    new_img = None
     if h < w:
         new_img = imresize(img, (new_size, int(new_size / aspect_ratio)), interp)
     else:

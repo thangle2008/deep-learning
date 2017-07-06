@@ -11,7 +11,7 @@ from models.resnet import ResnetBuilder
 from models import vgg16
 
 
-def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
+def run(model, train, val, opt, num_classes, dim, num_epochs=100, **kwargs):
     """
     Train a classifier with the provided training and validation data.
     The model must be a compiled keras model.
@@ -22,8 +22,8 @@ def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
     # extract metadata
     num_train_samples = train.n
     num_val_samples = val.n
-    num_classes = len(train.label_names)
-    dim = train.output_shape[0]
+    train_batch_size = train.batch_size
+    val_batch_size = val.batch_size
 
     # callbacks list
     model_checkpoint = ModelCheckpoint(
@@ -39,7 +39,8 @@ def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
     if model == 'resnet':
         model = ResnetBuilder.build_resnet((3, dim, dim), num_classes, **kwargs)
     elif model == 'vgg16':
-        model = vgg16.build_model((dim, dim, 3), num_classes)
+        weights = 'tinyimagenet' if kwargs['pretrained'] else None
+        model = vgg16.build_model((dim, dim, 3), num_classes, weights=weights)
 
     if opt['algo'] == 'sgd':
         optimizer = keras.optimizers.SGD(**opt['params'])
@@ -57,11 +58,11 @@ def run(model, train, val, opt, batch_size=32, num_epochs=100, **kwargs):
 
     model.fit_generator(
         train,
-        steps_per_epoch=num_train_samples // batch_size,
+        steps_per_epoch=num_train_samples // train_batch_size,
         epochs=num_epochs,
         validation_data=val,
-        validation_steps=num_val_samples // batch_size,
-        callbacks=[model_checkpoint, reduce_lr, early_stop, csv_logger],
+        validation_steps=num_val_samples // val_batch_size,
+        callbacks=[model_checkpoint, reduce_lr, csv_logger],
     )
 
     print "Best validation loss = {:.3f}".format(model_checkpoint.best)

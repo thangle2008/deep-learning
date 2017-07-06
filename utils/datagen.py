@@ -115,3 +115,6 @@ class DirectoryDataGenerator(object):
         self.batch_idx += self.batch_size
 
         return x_batch, labels
+
+    def __iter__(self):
+        return self

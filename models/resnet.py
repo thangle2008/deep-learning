@@ -303,11 +303,12 @@ class ResnetBuilder(object):
         # number of residual blocks for each depth
         num_blocks = {
             18: [2, 2, 2, 2],
-            20: [3, 3, 3],
             34: [3, 4, 6, 3],
             50: [3, 4, 6, 3],
             101: [3, 4, 23, 3],
-            152: [3, 8, 36, 3]
+            152: [3, 8, 36, 3],
+            20: [3, 3, 3],
+            32: [5, 5, 5],
         }
 
         if depth not in num_blocks.keys():

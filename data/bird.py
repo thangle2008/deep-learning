@@ -5,7 +5,8 @@ from functools import partial
 import keras.backend as K
 
 from utils.datagen import DirectoryDataGenerator
-from utils.imgprocessing import meanstd, center_crop, random_crop, horizontal_flip
+from utils.imgprocessing import meanstd, center_crop, random_crop, \
+    horizontal_flip, ten_crop
 
 
 mean = np.asarray([69.47252731, 160.22688271, 126.6051936], dtype=K.floatx())
@@ -37,11 +38,16 @@ def get_data_gen():
     return train_generator, val_generator
 
 
-def get_test_gen(datatype='val'):
+def get_test_gen(datatype='val', ten_crop_img=False):
+
+    if not ten_crop_img:
+        crop = center_crop
+    else:
+        crop = ten_crop
 
     transforms = [
         partial(meanstd, mean=mean, std=std),
-        partial(center_crop, new_size=CROP_DIM)
+        partial(crop, new_size=CROP_DIM)
     ]
 
     generator = DirectoryDataGenerator(
