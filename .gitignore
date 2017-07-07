@@ -1,7 +1,7 @@
 *.pyc
+*.hdf5
+*.csv
 **/images
-**/metadata
-/experiments
 
 # Pycharm
 .idea

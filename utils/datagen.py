@@ -10,8 +10,7 @@ from scipy.misc import imread
 
 def get_transform(*functions):
     """
-    Return a transformation function composed from
-    a list of transformation functions
+    Return a function composed from a list of functions.
     """
 
     def transform(img):
@@ -43,8 +42,33 @@ def get_augmented_generator(gen, transform_func, new_size=None):
 
 
 class DirectoryDataGenerator(object):
-    """
-    Generator with transformation.
+    """Generator that transforms and yields data batches from a directory.
+
+    The generator will first load the images, then put them through a list
+    of functions (such as cropping, flipping, ...) to produce augmented data.
+
+    Args:
+        folder (str): Path to the folder. Note that the folder must have
+            a subdirectory per class. For example, one valid directory
+            structure is:
+                folder/
+                    class1/
+                        img1.jpg
+                        img2.jpg
+                        ...
+                    class2/
+                        img1.jpg
+                        img2.jpg
+                        ...
+        transforms (list): A list of functions, each takes an image
+            (as a numpy array) and returns a transformed image.
+
+    Attributes:
+        n (int): the total number of images in the directory.
+        batch_size (int): the size of each batch (note that the last batch
+            can have different size than those of the others since the total
+            number of images may not be divisible by the batch size).
+        paths (list): The paths of all the images.
     """
 
     def __init__(self, folder, transforms, shuffle=True, batch_size=32,

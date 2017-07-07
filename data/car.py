@@ -14,7 +14,7 @@ mean = np.asarray([119.26753706, 115.92306357, 116.10504895], dtype=K.floatx())
 std = np.asarray([75.48790007, 75.23135039, 77.03315339], dtype=K.floatx())
 
 LOAD_DIM = 256
-CROP_DIM = 224
+TRAIN_DIM = CROP_DIM = 224
 URL = './data/images/cars/'
 
 

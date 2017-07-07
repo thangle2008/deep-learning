@@ -14,6 +14,7 @@ std = np.asarray([71.34189641, 57.88649865, 53.74540484], dtype=K.floatx())
 
 LOAD_DIM = 256
 CROP_DIM = TRAIN_DIM = 224
+NUM_CLASSES = 14
 URL = './data/images/all_years_342x256'
 
 
@@ -32,7 +33,7 @@ def get_data_gen():
     # data generators
     train_generator = DirectoryDataGenerator(
         os.path.join(URL, 'train'), train_transforms, shuffle=True)
-
+    
     val_generator = get_test_gen('val')
 
     return train_generator, val_generator

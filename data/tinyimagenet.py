@@ -16,7 +16,8 @@ mean = np.asarray([120.94365593, 113.68772887, 99.6798221], dtype=K.floatx())
 std = np.asarray([68.73304916, 66.44590252, 69.13904857], dtype=K.floatx())
 
 LOAD_DIM = 64
-CROP_DIM = 56
+CROP_DIM = TRAIN_DIM = 56
+NUM_CLASSES = 200
 
 URL = './data/images/tiny-imagenet-200'
 

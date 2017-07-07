@@ -10,7 +10,10 @@ from keras.preprocessing.image import ImageDataGenerator
 
 
 def meanstd(img, mean=None, std=None):
-    """Centralize and normalize an image."""
+    """
+    Subtract then divide the image by the given mean and
+    standard deviation.
+    """
 
     if mean is not None:
         img -= mean.reshape(1, 1, 3)
@@ -21,20 +24,9 @@ def meanstd(img, mean=None, std=None):
     return img
 
 
-def crop(img, new_size, method='center'):
-    """Crop an image to a new size."""
-    if method == 'center':
-        return center_crop(img, new_size)
-    elif method == 'random':
-        return random_crop(img, new_size)
-    else:
-        raise ValueError
-
-
 def center_crop(img, new_size):
     """
-    Crop an image at the center. Assume that both dims are not 
-    less than new size.
+    Crop an image at the center.
     """
     h, w = img.shape[:2] 
 
@@ -45,6 +37,10 @@ def center_crop(img, new_size):
 
 
 def ten_crop(img, new_size):
+    """
+    Crop an image at 4 corners and at the center. Then, return those
+    new 5 images along with their corresponding horizontal flips.
+    """
 
     img_list = [
         img[0:new_size, 0:new_size],  # top left corner

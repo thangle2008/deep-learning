@@ -11,8 +11,26 @@ from .imgprocessing import resize_and_crop
 
 def get_paths_with_labels(folder):
     """
-    Returns list of file paths by classes in a given directory.
-    The directory is expected to have a subdirectory per class.
+    Return a list of file paths with labels in a directory.
+
+    Args:
+        folder: Path to the folder. Note that the folder must have
+            a subdirectory per class. For example, one valid directory
+            structure is:
+                folder/
+                    class1/
+                        img1.jpg
+                        img2.jpg
+                        ...
+                    class2/
+                        img1.jpg
+                        img2.jpg
+                        ...
+
+    Returns:
+        A tuple of file paths, corresponding labels, and label names (
+        label names are just the names of the subdirectories, in the order
+        they were loaded in).
     """
     filepaths = []
     categories = []

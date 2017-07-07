@@ -297,7 +297,28 @@ class ResnetBuilder(object):
     @staticmethod
     def build_resnet(input_shape, num_outputs, depth=18, shortcut_option='B',
                      base_filters=64, downsampling_top=True):
+        """Build a Resnet model based on the given configuration.
 
+        Args:
+            input_shape (tuple): A 3-D tuple. The color channel must be in the
+                first axis. For example, (3, 224, 244) is a valid tuple.
+            num_outputs (int): The number of classes.
+            depth (int):
+            shortcut_option (str): The option for handling the case where the
+                output of a residual block has different shape from that of
+                the shortcut. This should be either `A` (identity mapping with
+                zero padding) or `B` (convolutional mapping that matches
+                two different dimensions).
+            base_filters (int): The number of filters in the first residual
+                block.
+            downsampling_top (bool): If True, the first convolutional layer
+                will have 7x7 kernels and a max pooling layer to reduce
+                the dimension of the input image. Otherwise, there is only
+                one convolutional layer with 3x3 kernels at the top.
+
+        Returns: A Keras model.
+
+        """
         params = locals()
 
         # number of residual blocks for each depth
