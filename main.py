@@ -47,7 +47,7 @@ if __name__ == '__main__':
     num_classes = data_module.NUM_CLASSES
 
     if args.evaluate is not None:
-        test_gen = data_module.get_test_gen(args.evaluate, args.ten_crop)
+        test_gen = data_module.get_test_gen(args.evaluate)
         tester.evaluate(args.classifier, test_gen, args.ten_crop,
                         output_dir=args.output_false)
 

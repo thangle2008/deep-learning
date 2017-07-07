@@ -1,6 +1,7 @@
 from __future__ import division
 import math
 import random
+from functools import partial
 
 import numpy as np
 from scipy.misc import imresize
@@ -128,3 +129,70 @@ def height_shift(img, shift_range):
     datagen = ImageDataGenerator(height_shift_range=shift_range)
     img_batch = img.reshape((1,) + img.shape)
     return next(datagen.flow(img_batch, batch_size=1, shuffle=False))[0]
+
+
+# Color jittering functions, which are based on the codes from
+# https://github.com/facebook/fb.resnet.torch/blob/master/datasets/transforms.lua
+def _rgb2gray(img):
+    """
+    Return the grayscale representation of a RGB image.
+    """
+    new_img = np.zeros(img.shape, dtype=img.dtype)
+    gs = np.dot(img, [0.299, 0.587, 0.114])
+    new_img[..., 0] = gs
+    new_img[..., 1] = np.copy(gs)
+    new_img[..., 2] = np.copy(gs)
+    return new_img
+
+
+def _blend(img1, img2, alpha):
+    """
+    Blend 2 images with an alpha factor.
+    """
+    return alpha * img1 + (1 - alpha) * img2
+
+
+def adjust_brightness(img, var):
+    """
+    Adjust image brightness
+    """
+    gs = np.zeros(img.shape, dtype=img.dtype)
+    alpha = 1.0 + np.random.uniform(-var, var)
+    return _blend(img, gs, alpha)
+
+
+def adjust_contrast(img, var):
+    """
+    Adjust image contrast.
+    """
+    gs = _rgb2gray(img)
+    gs.fill(gs[0].mean())
+    alpha = 1.0 + np.random.uniform(-var, var)
+    return _blend(img, gs, alpha)
+
+
+def adjust_saturation(img, var):
+    """
+    Adjust image saturation.
+    """
+    gs = _rgb2gray(img)
+    alpha = 1.0 + np.random.uniform(-var, var)
+    return _blend(img, gs, alpha)
+
+
+def color_jitter(img, brightness=0.0, contrast=0.0, saturation=0.0):
+    """
+    Adjust image brightness, contrast, and saturation in random order.
+    """
+    transforms = [
+        partial(adjust_brightness, var=brightness),
+        partial(adjust_contrast, var=contrast),
+        partial(adjust_saturation, var=saturation)
+    ]
+    #random.shuffle(transforms)
+
+    new_img = np.copy(img)
+    for f in transforms:
+        new_img = f(new_img)
+
+    return new_img
