@@ -64,7 +64,7 @@ care about any other functions in those files that are not described above).
 
 ### 2) Training:
 
-Run the main.py script as follows to train on Resnet (you can inspect the main.py scripts to find out about the usage of every optional argument):
+Run the main.py script as follows to train on Resnet (you can inspect the main.py script to find out about the usage of every optional argument):
 
 `$ python main.py [data generator file] --model resnet --depth [18, 20, 34, ...]`
 
@@ -77,7 +77,7 @@ To resume training on the saved model, run:
 
 To plot the training log file, run:
 
-`$ python plot.py --file [path to csv file]`
+`$ python plot.py [path to csv file]`
 
 ### 3) Testing
 

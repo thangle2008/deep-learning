@@ -5,7 +5,7 @@ import csv
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--file', action='store')
+parser.add_argument('file', action='store')
 
 
 if __name__ == '__main__':

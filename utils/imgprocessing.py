@@ -5,7 +5,6 @@ from functools import partial
 
 import numpy as np
 from scipy.misc import imresize
-import skimage.transform
 
 
 def meanstd(img, mean=None, std=None):

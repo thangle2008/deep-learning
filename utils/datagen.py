@@ -130,8 +130,11 @@ class DirectoryDataGenerator(object):
 
     """
 
-    def __init__(self, folder, transforms, shuffle=True, batch_size=32,
+    def __init__(self, folder, transforms=None, shuffle=True, batch_size=32,
                  seed=None):
+
+        if transforms is None:
+            transforms = []
 
         paths, labels, label_names = get_paths_with_labels(folder)
 

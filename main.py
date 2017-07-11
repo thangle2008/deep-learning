@@ -13,7 +13,6 @@ parser = argparse.ArgumentParser()
 
 # data configuration
 parser.add_argument('data', action='store',
-                    choices=['bird', 'tinyimagenet', 'cifar10', 'car'],
                     help='the python data configuration file to use')
 
 # training configuration
