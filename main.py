@@ -10,29 +10,47 @@ from models import vgg16
 
 parser = argparse.ArgumentParser()
 
-# for training
-parser.add_argument('--data', dest='data', action='store',
-                    choices=['bird', 'tinyimagenet', 'cifar10', 'car'])
-parser.add_argument('--model', dest='model', action='store', default='resnet')
-parser.add_argument('--epochs', type=int, default=200)
-parser.add_argument('--resume', action='store')
-parser.add_argument('--initial_epoch', type=int, default=0)
+
+# data configuration
+parser.add_argument('data', action='store',
+                    choices=['bird', 'tinyimagenet', 'cifar10', 'car'],
+                    help='the python data configuration file to use')
+
+# training configuration
+parser.add_argument('--model', dest='model', action='store',
+                    choices=['resnet', 'vgg16'], default='resnet',
+                    help='the network model to use')
+parser.add_argument('--epochs', type=int, default=200,
+                    help='number of training epochs')
+parser.add_argument('--resume', action='store',
+                    help='path to a model file to resume training')
+parser.add_argument('--initial_epoch', type=int, default=0,
+                    help='the initial epoch to start training')
 
 # optimizer configuration
-parser.add_argument('--algo', dest='algo', action='store', default='sgd')
-parser.add_argument('--lr', type=float, default=0.1)
+parser.add_argument_group('optimizer arguments')
+parser.add_argument('--algo', dest='algo', action='store', default='sgd',
+                    help='the algorithm to use for optimizing the '
+                         'loss function')
+parser.add_argument('--lr', type=float, default=0.1,
+                    help='initial learning rate')
 
-# for Resnet
+# Resnet-only configuration (read the resnet module to understand more about
+# these configurations)
 parser.add_argument('--depth', type=int, default=18)
 parser.add_argument('--filters', type=int, default=64)
 parser.add_argument('--pooling', action='store_true')
 parser.add_argument('--shortcut', action='store', choices=['A', 'B'], default='B')
 
-# for testing
+# testing configuration
 parser.add_argument('--evaluate', action='store',
-                    choices=['train', 'val', 'test'])
-parser.add_argument('--output_false', action='store')
-parser.add_argument('--classifier', action='store')
+                    choices=['train', 'val', 'test'],
+                    help='the dataset to use for evaluating')
+parser.add_argument('--output_false', action='store',
+                    help='path to a folder to output all incorrectly'
+                         'classified images')
+parser.add_argument('--classifier', action='store',
+                    help='path to a trained model')
 parser.add_argument('--ten_crop', action='store_true')
 
 
@@ -49,7 +67,7 @@ if __name__ == '__main__':
     num_classes = data_module.NUM_CLASSES
 
     if args.evaluate is not None:
-        test_gen = data_module.get_test_gen(args.evaluate)
+        test_gen = data_module.get_test_gen(args.evaluate, args.ten_crop)
         tester.evaluate(args.classifier, test_gen, args.ten_crop,
                         output_dir=args.output_false)
 

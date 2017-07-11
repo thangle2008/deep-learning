@@ -6,8 +6,9 @@ from functools import partial
 import keras.backend as K
 
 from utils.datagen import DirectoryDataGenerator
-from utils.imgprocessing import (meanstd, center_crop, random_crop,
-                                 horizontal_flip)
+from utils.imgprocessing import (resize_and_crop, center_crop, random_crop,
+                                 meanstd, horizontal_flip, color_jitter,
+                                 scale)
 
 
 mean = np.asarray([119.26753706, 115.92306357, 116.10504895], dtype=K.floatx())
@@ -15,6 +16,7 @@ std = np.asarray([75.48790007, 75.23135039, 77.03315339], dtype=K.floatx())
 
 LOAD_DIM = 256
 TRAIN_DIM = CROP_DIM = 224
+NUM_CLASSES = 196
 URL = './data/images/cars/'
 
 
@@ -49,8 +51,10 @@ def get_data_gen():
     """
     # define preprocessing pipeline
     train_transforms = [
+        partial(resize_and_crop, new_size=LOAD_DIM),
+        partial(color_jitter, brightness=0.4, contrast=0.4, saturation=0.4),
         partial(meanstd, mean=mean, std=std),
-        partial(random_crop, new_size=CROP_DIM),
+        partial(random_crop, new_size=CROP_DIM, padding=10),
         partial(horizontal_flip, f=0.5),
     ]
 
@@ -66,6 +70,7 @@ def get_data_gen():
 def get_test_gen(datatype='val'):
 
     transforms = [
+        partial(scale, new_size=LOAD_DIM),
         partial(meanstd, mean=mean, std=std),
         partial(center_crop, new_size=CROP_DIM)
     ]

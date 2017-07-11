@@ -9,6 +9,18 @@ import shutil
 
 
 def count_correct(predictions, true_labels, top=1):
+    """Count the number of correct predictions.
+
+    Both predictions and true labels should be one-hot.
+
+    Args:
+        predictions: A Numpy array of predictions.
+        true_labels: A Numpy array of labels.
+        top: The least rank of the prediction to be counted as correct.
+
+    Returns: Number of correct predictions.
+
+    """
 
     correct_labels = 0
 
@@ -25,6 +37,7 @@ def count_correct(predictions, true_labels, top=1):
 
 def _output_wrong_labels(paths, output_dir, batch_idx, predictions,
                          true_labels):
+    """Output incorrectly classified images into a folder."""
 
     for idx in xrange(predictions.shape[0]):
         pred = predictions[idx].argmax()
@@ -47,8 +60,19 @@ def _output_wrong_labels(paths, output_dir, batch_idx, predictions,
 
 
 def evaluate(model, test_gen, ten_crop, output_dir=None):
-    """
-    Evaluate a given model with a generator.
+    """Evaluate a trained model.
+
+    Print out top-1 and top-5 accuracies.
+
+    Args:
+        model: A Keras model.
+        test_gen: A generator that yields data by batches indefinitely.
+            The generator should have 2 attributes: n (number of samples)
+            and batch_size (size of each batch).
+        ten_crop (bool): If true, use the ten crop method while testing.
+        output_dir (str): If provided, output all the incorrectly classified
+            images into the specified folder.
+
     """
     keras.backend.clear_session()
 
@@ -84,7 +108,6 @@ def evaluate(model, test_gen, ten_crop, output_dir=None):
             if output_dir is not None:
                 _output_wrong_labels(test_gen.paths, output_dir, batch_idx,
                                      res_batch, true_labels)
-
 
         else:
             preds = model.predict_on_batch(X_batch)

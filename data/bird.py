@@ -6,7 +6,7 @@ import keras.backend as K
 
 from utils.datagen import DirectoryDataGenerator
 from utils.imgprocessing import meanstd, center_crop, random_crop, \
-    horizontal_flip, ten_crop, color_jitter
+    horizontal_flip, ten_crop, color_jitter, resize_and_crop
 
 
 mean = np.asarray([69.47252731, 160.22688271, 126.6051936], dtype=K.floatx())
@@ -25,9 +25,10 @@ def get_data_gen():
     """
     # define preprocessing pipeline
     train_transforms = [
-        partial(random_crop, new_size=CROP_DIM),
+        partial(resize_and_crop, new_size=LOAD_DIM),
         partial(color_jitter, brightness=0.4, contrast=0.4, saturation=0.4),
         partial(meanstd, mean=mean, std=std),
+        partial(random_crop, new_size=CROP_DIM),
         partial(horizontal_flip, f=0.5),
     ]
 
@@ -48,6 +49,7 @@ def get_test_gen(datatype='val', ten_crop_img=True):
         crop = ten_crop
 
     transforms = [
+        partial(resize_and_crop, new_size=LOAD_DIM),
         partial(meanstd, mean=mean, std=std),
         partial(crop, new_size=CROP_DIM)
     ]

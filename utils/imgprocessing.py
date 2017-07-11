@@ -79,14 +79,22 @@ def random_crop(img, new_size, padding=0):
     return img[h_offset:h_offset+new_size, w_offset:w_offset+new_size]
 
 
-def scale(img, new_size):
+def scale(img, new_size, interp='bicubic'):
     """
-    Scale an image to the given size.
+    Scale the smaller size of an image to a given size and keep aspect ratio.
     """
-    img = skimage.transform.resize(img, (new_size, new_size), 
-                                   preserve_range=True)
-    
-    return img
+    h, w = img.shape[:2]
+    aspect_ratio = h / w
+
+    # resize the smaller dim to new size and keep aspect ratio
+    if h < w:
+        new_img = imresize(img, (new_size, int(new_size / aspect_ratio)),
+                           interp)
+    else:
+        new_img = imresize(img, (int(new_size * aspect_ratio), new_size),
+                           interp)
+
+    return new_img.astype(img.dtype)
 
 
 def horizontal_flip(img, f=0.5):
@@ -104,14 +112,7 @@ def resize_and_crop(img, new_size, interp='bicubic'):
     Firstly, resize the smaller dimension of the image to the new size.
     Then, crop the image at the center.
     """
-    h, w = img.shape[:2]
-    aspect_ratio = h / w
-
-    # resize the smaller dim to new size and keep aspect ratio
-    if h < w:
-        new_img = imresize(img, (new_size, int(new_size / aspect_ratio)), interp)
-    else:
-        new_img = imresize(img, (int(new_size * aspect_ratio), new_size), interp)
+    new_img = scale(img, new_size, interp=interp)
 
     # crop the image to the new size
     return center_crop(new_img, new_size)

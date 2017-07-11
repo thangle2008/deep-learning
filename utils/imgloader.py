@@ -1,4 +1,5 @@
 import os
+import shutil
 import re
 import multiprocessing
 
@@ -7,55 +8,6 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from scipy.misc import imread, imresize
 
 from .imgprocessing import resize_and_crop
-
-
-def get_paths_with_labels(folder):
-    """
-    Return a list of file paths with labels in a directory.
-
-    Args:
-        folder: Path to the folder. Note that the folder must have
-            a subdirectory per class. For example, one valid directory
-            structure is:
-                folder/
-                    class1/
-                        img1.jpg
-                        img2.jpg
-                        ...
-                    class2/
-                        img1.jpg
-                        img2.jpg
-                        ...
-
-    Returns:
-        A tuple of file paths, corresponding labels, and label names (
-        label names are just the names of the subdirectories, in the order
-        they were loaded in).
-    """
-    filepaths = []
-    categories = []
-    
-    label_names = [] # class num to class name
-
-    n_class = 0
-    # get the file paths
-    for root, dirnames, filenames in os.walk(folder):  
-        dirnames.sort()
-        if root == folder:
-            continue
-
-        class_id = root.split('/')[-1]
-        
-        for filename in filenames:
-            if re.search('(?i)\.(jpg|png|jpeg)$', filename):
-                filepath = os.path.join(root, filename)
-                filepaths.append(filepath)
-                categories.append(n_class)
-
-        label_names.append(class_id)
-        n_class += 1
-
-    return filepaths, categories, label_names
 
 
 def _split_data(X, y, p_train=0.5, seed=None):
@@ -103,6 +55,55 @@ def _multi_load_img(paths, labels, new_size=None, scale=True):
     return X, y
 
 
+def get_paths_with_labels(folder):
+    """
+    Return a list of file paths with labels in a directory.
+
+    Args:
+        folder: Path to the folder. Note that the folder must have
+            a subdirectory per class. For example, one valid directory
+            structure is:
+                folder/
+                    class1/
+                        img1.jpg
+                        img2.jpg
+                        ...
+                    class2/
+                        img1.jpg
+                        img2.jpg
+                        ...
+
+    Returns:
+        A tuple of file paths, corresponding labels, and label names (
+        label names are just the names of the subdirectories, in the order
+        they were loaded in).
+    """
+    filepaths = []
+    categories = []
+
+    label_names = []  # class num to class name
+
+    n_class = 0
+    # get the file paths
+    for root, dirnames, filenames in os.walk(folder):
+        dirnames.sort()
+        if root == folder:
+            continue
+
+        class_id = root.split('/')[-1]
+
+        for filename in filenames:
+            if re.search('(?i)\.(jpg|png|jpeg)$', filename):
+                filepath = os.path.join(root, filename)
+                filepaths.append(filepath)
+                categories.append(n_class)
+
+        label_names.append(class_id)
+        n_class += 1
+
+    return filepaths, categories, label_names
+
+
 def load_data(folder, p_train=0.5, new_size=None, 
               scale=True, seed=None):
     """
@@ -127,3 +128,34 @@ def load_data(folder, p_train=0.5, new_size=None,
     print train[0].shape    
 
     return train, test, label_names
+
+
+def _move_data(folder, paths, labels, label_names):
+    """Move files to a given folder.
+
+    Helper function for distributing data into subdirectories based on
+    their labels.
+    """
+
+    for i in xrange(len(paths)):
+        p, label = paths[i], labels[i]
+        subfolder = os.path.join(folder, label_names[label])
+
+        if not os.path.exists(subfolder):
+            os.makedirs(subfolder)
+
+        shutil.move(p, subfolder)
+
+
+def split_train_val(folder, p_train=0.5, seed=None):
+
+    paths, labels, label_names = get_paths_with_labels(folder)
+
+    paths = np.asarray(paths)
+    labels = np.asarray(labels)
+
+    (train_x, train_y), (val_x, val_y) = _split_data(paths, labels,
+                                                     p_train=p_train, seed=seed)
+
+    _move_data(os.path.join(folder, 'train'), train_x, train_y, label_names)
+    _move_data(os.path.join(folder, 'val'), val_x, val_y, label_names)
