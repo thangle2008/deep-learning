@@ -108,7 +108,8 @@ def _shortcut(input, residual):
             x = AveragePooling2D(pool_size=(1, 1),
                                  strides=(stride_width, stride_height))(input)
             # multiply every element of x by 0 to get zero matrix
-            mul_zero = Lambda(lambda val: val * 0.0)(x)
+            mul_zero = Lambda(lambda val: val * 0.0,
+                              output_shape=K.int_shape(x)[1:])(x)
 
             shortcut = concatenate([x, mul_zero], axis=CHANNEL_AXIS)
 

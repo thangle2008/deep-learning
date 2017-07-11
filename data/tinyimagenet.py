@@ -7,9 +7,8 @@ from functools import partial
 import keras.backend as K
 
 from utils.datagen import DirectoryDataGenerator
-from utils.imgprocessing import (meanstd, 
-                                 center_crop, random_crop, 
-                                 horizontal_flip, width_shift, height_shift)
+from utils.imgprocessing import (meanstd, color_jitter,
+                                 center_crop, random_crop, horizontal_flip)
 
 
 mean = np.asarray([120.94365593, 113.68772887, 99.6798221], dtype=K.floatx())
@@ -66,16 +65,15 @@ def get_data_gen():
     """
     # define preprocessing pipeline
     train_transforms = [
-        partial(width_shift, shift_range=0.1),
-        partial(height_shift, shift_range=0.1),
-        partial(horizontal_flip, f=0.5),
-        partial(random_crop, new_size=CROP_DIM),
+        partial(color_jitter, brightness=0.4, contrast=0.4, saturation=0.4),
         partial(meanstd, mean=mean, std=std),
+        partial(random_crop, new_size=CROP_DIM, padding=4),
+        partial(horizontal_flip, f=0.5),
     ]    
 
     # data generators
     train_generator = DirectoryDataGenerator(
-        os.path.join(URL, 'train'), train_transforms, shuffle=True)
+        os.path.join(URL, 'train'), train_transforms, shuffle=True, seed=28)
 
     val_generator = get_test_gen('val')
 

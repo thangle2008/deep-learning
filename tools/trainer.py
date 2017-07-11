@@ -5,7 +5,8 @@ import numpy as np
 from keras.callbacks import (ModelCheckpoint, ReduceLROnPlateau, CSVLogger)
 
 
-def run(model, train, val, num_epochs=100, lr_plateau=np.sqrt(0.1), patience=5):
+def run(model, train, val, num_epochs=100, initial_epoch=0,
+        lr_plateau=np.sqrt(0.1), patience=5):
     """Train a Keras model with given training and validation data.
 
     The learning rate will be reduced if the validation loss does not get better
@@ -26,6 +27,7 @@ def run(model, train, val, num_epochs=100, lr_plateau=np.sqrt(0.1), patience=5):
         val: same as the train generator. This data will be used for validating
             the classifier accuracy.
         num_epochs: The number of training epochs.
+        initial_epoch: The initial epoch (useful for resuming training).
         lr_plateau: The factor that the current learning rate will be reduced
             if the validation loss does not get better.
         patience: The number of epochs to wait before reducing learning rate.
@@ -59,6 +61,7 @@ def run(model, train, val, num_epochs=100, lr_plateau=np.sqrt(0.1), patience=5):
         validation_data=val,
         validation_steps=num_val_samples // val_batch_size,
         callbacks=[model_checkpoint, reduce_lr, csv_logger],
+        initial_epoch=initial_epoch
     )
 
     print "Best validation loss = {:.3f}".format(model_checkpoint.best)

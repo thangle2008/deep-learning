@@ -1,10 +1,12 @@
-import cPickle
+from functools import partial
 import numpy as np
 
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 from keras.datasets import cifar10
+
+from utils.datagen import ArrayDataGenerator
+from utils.imgprocessing import random_crop, horizontal_flip
 
 
 TRAIN_DIM = 32
@@ -24,6 +26,10 @@ def get_data_gen():
     # load data
     (X_train, y_train), (X_val, y_val) = cifar10.load_data()
 
+    if K.image_data_format() == 'channels_first':
+        X_train = X_train.transpose(0, 2, 3, 1)
+        X_val = X_val.transpose(0, 2, 3, 1)
+
     X_train = K.cast_to_floatx(X_train)
     X_val = K.cast_to_floatx(X_val)
 
@@ -36,18 +42,18 @@ def get_data_gen():
     X_train /= std
     X_val /= std
 
-    # data generators
-    train_datagen = ImageDataGenerator(
-        horizontal_flip=True,
-        width_shift_range=0.1,
-        height_shift_range=0.1
-    )
+    # train generator
+    train_transforms = [
+        partial(random_crop, new_size=32, padding=4),
+        partial(horizontal_flip, f=0.5)
+    ]
 
-    val_datagen = ImageDataGenerator()
-
-    train_generator = train_datagen.flow(X_train, y_train, 
+    train_generator = ArrayDataGenerator(X_train, y_train,
+                                         transforms=train_transforms,
                                          shuffle=True, seed=28)
-    val_generator = val_datagen.flow(X_val, y_val, shuffle=False)
+
+    # validation generator
+    val_generator = ArrayDataGenerator(X_val, y_val, shuffle=False)
 
     return train_generator, val_generator
 
@@ -59,13 +65,15 @@ def get_test_gen(dtype='val'):
 
     _, (X_val, y_val) = cifar10.load_data()
 
+    if K.image_data_format() == 'channels_first':
+        X_val = X_val.transpose(0, 2, 3, 1)
+
     X_val = K.cast_to_floatx(X_val)
     y_val = to_categorical(y_val)
 
     X_val -= mean
     X_val /= std
 
-    val_datagen = ImageDataGenerator()
-    val_generator = val_datagen.flow(X_val, y_val, shuffle=False)
+    val_generator = ArrayDataGenerator(X_val, y_val, shuffle=False)
 
     return val_generator

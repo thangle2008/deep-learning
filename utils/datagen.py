@@ -2,6 +2,7 @@ import numpy as np
 
 import keras.backend as K
 from keras.utils import to_categorical
+from keras.preprocessing.image import ImageDataGenerator
 
 from utils.imgloader import get_paths_with_labels
 
@@ -26,7 +27,6 @@ def get_augmented_generator(gen, transform_func, new_size=None):
     """
     Yield batches from a given generator with specified transformations.
     """
-
     for X_batch, y_batch in gen:
 
         if new_size is None:
@@ -39,6 +39,60 @@ def get_augmented_generator(gen, transform_func, new_size=None):
             X_batch_new[idx] = transform_func(X_batch[idx])
 
         yield X_batch_new, y_batch
+
+
+class ArrayDataGenerator(object):
+    """Generator that transforms and yields data batches from Numpy arrays.
+
+    This class is a wrapper around the ImageDataGenerator class of Keras
+    image preprocessing module.
+
+    Args:
+        X: Numpy array of data samples.
+        y: Numpy array of data labels.
+        transforms: A list of transformation functions. Each of them takes
+            an image as input and returns a transformed image.
+        shuffle: If true, shuffle the data samples after all of them have
+            been loaded before starting the next batch.
+        batch_size: The size of each batch.
+        seed: This is used to set the seed before shuffling data.
+
+    """
+
+    def __init__(self, X, y, transforms=None, shuffle=True, batch_size=32,
+                 seed=None):
+
+        if transforms is None:
+            transforms = []
+
+        self.n = X.shape[0]
+        self.batch_size = batch_size
+
+        datagen = ImageDataGenerator(data_format='channels_last')
+        self._data_generator = datagen.flow(X, y, batch_size=batch_size,
+                                            shuffle=shuffle, seed=seed)
+        self._transform_func = get_transform(*transforms)
+        self.output_shape = self._transform_func(X[0]).shape
+
+        if K.image_data_format() == 'channels_first':
+            self.output_shape = (self.output_shape[2],
+                                 self.output_shape[0],
+                                 self.output_shape[1])
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        X, y = next(self._data_generator)
+        X_new = np.zeros((X.shape[0], ) + self.output_shape, dtype=K.floatx())
+
+        for idx in xrange(len(X)):
+            transformed_img = self._transform_func(X[idx])
+            if K.image_data_format() == 'channels_first':
+                transformed_img = transformed_img.transpose(2, 0, 1)
+            X_new[idx] = transformed_img
+
+        return X_new, y
 
 
 class DirectoryDataGenerator(object):
@@ -62,6 +116,10 @@ class DirectoryDataGenerator(object):
                         ...
         transforms (list): A list of functions, each takes an image
             (as a numpy array) and returns a transformed image.
+        shuffle: If true, shuffle the data samples after all of them have
+            been loaded before starting the next batch.
+        batch_size: The size of each batch.
+        seed: This is used to set the seed before shuffling data.
 
     Attributes:
         n (int): the total number of images in the directory.
@@ -69,10 +127,11 @@ class DirectoryDataGenerator(object):
             can have different size than those of the others since the total
             number of images may not be divisible by the batch size).
         paths (list): The paths of all the images.
+
     """
 
     def __init__(self, folder, transforms, shuffle=True, batch_size=32,
-                 seed=28):
+                 seed=None):
 
         paths, labels, label_names = get_paths_with_labels(folder)
 
@@ -97,6 +156,11 @@ class DirectoryDataGenerator(object):
         img = np.asarray(img, dtype=K.floatx())
         self.output_shape = self.transform(img).shape
 
+        if K.image_data_format() == 'channels_first':
+            self.output_shape = (self.output_shape[2],
+                                 self.output_shape[0],
+                                 self.output_shape[1])
+
         self.reset()
 
     def reset(self):
@@ -108,7 +172,8 @@ class DirectoryDataGenerator(object):
         self.num_batches_so_far += 1
 
         if self.shuffle:
-            np.random.seed(self.seed + self.num_batches_so_far)
+            if self.seed is not None:
+                np.random.seed(self.seed + self.num_batches_so_far)
             self.indices = np.random.permutation(self.n)
 
     def next(self):
@@ -130,10 +195,13 @@ class DirectoryDataGenerator(object):
 
         x_batch = np.zeros((batch_size,) + self.output_shape, dtype=K.floatx())
 
+        # load and process the image batch
         for idx in xrange(len(paths)):
             img = imread(paths[idx], mode='RGB')
             img = np.asarray(img, dtype=K.floatx())
             img = self.transform(img)
+            if K.image_data_format() == 'channels_first':
+                img = img.transpose(2, 0, 1)
             x_batch[idx] = img
 
         self.batch_idx += self.batch_size

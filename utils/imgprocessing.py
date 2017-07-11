@@ -7,8 +7,6 @@ import numpy as np
 from scipy.misc import imresize
 import skimage.transform
 
-from keras.preprocessing.image import ImageDataGenerator
-
 
 def meanstd(img, mean=None, std=None):
     """
@@ -61,10 +59,18 @@ def ten_crop(img, new_size):
     return np.asarray(res)
 
 
-def random_crop(img, new_size):
+def random_crop(img, new_size, padding=0):
     """
     Randomly choose a region from an image to crop from.
+    Optionally pad the image with zeros before cropping.
     """
+    if padding > 0:
+        new_img = np.zeros((img.shape[0] + 2 * padding,
+                            img.shape[1] + 2 * padding,
+                            img.shape[2]), dtype=img.dtype)
+        new_img[padding:-padding, padding:-padding] = img
+        img = new_img
+
     h, w = img.shape[:2]
 
     h_offset = random.randint(0, h-new_size)
@@ -109,26 +115,6 @@ def resize_and_crop(img, new_size, interp='bicubic'):
 
     # crop the image to the new size
     return center_crop(new_img, new_size)
-
-
-def width_shift(img, shift_range):
-    """
-    Shift the image horizontally.
-    """
-
-    datagen = ImageDataGenerator(width_shift_range=shift_range)
-    img_batch = img.reshape((1,) + img.shape)
-    return next(datagen.flow(img_batch, batch_size=1, shuffle=False))[0]
-
-
-def height_shift(img, shift_range):
-    """
-    Shift the image vertically.
-    """
-
-    datagen = ImageDataGenerator(height_shift_range=shift_range)
-    img_batch = img.reshape((1,) + img.shape)
-    return next(datagen.flow(img_batch, batch_size=1, shuffle=False))[0]
 
 
 # Color jittering functions, which are based on the codes from
@@ -189,7 +175,8 @@ def color_jitter(img, brightness=0.0, contrast=0.0, saturation=0.0):
         partial(adjust_contrast, var=contrast),
         partial(adjust_saturation, var=saturation)
     ]
-    #random.shuffle(transforms)
+
+    random.shuffle(transforms)
 
     new_img = np.copy(img)
     for f in transforms:

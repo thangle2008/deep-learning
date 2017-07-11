@@ -14,11 +14,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data', dest='data', action='store',
                     choices=['bird', 'tinyimagenet', 'cifar10', 'car'])
 parser.add_argument('--model', dest='model', action='store', default='resnet')
+parser.add_argument('--epochs', type=int, default=200)
+parser.add_argument('--resume', action='store')
+parser.add_argument('--initial_epoch', type=int, default=0)
+
+# optimizer configuration
 parser.add_argument('--algo', dest='algo', action='store', default='sgd')
 parser.add_argument('--lr', type=float, default=0.1)
-parser.add_argument('--epochs', type=int, default=200)
-parser.add_argument('--optimize', action='store_true')
-parser.add_argument('--pretrained', action='store_true')
 
 # for Resnet
 parser.add_argument('--depth', type=int, default=18)
@@ -58,25 +60,29 @@ if __name__ == '__main__':
         print "Load model..."
 
         model = None
-        if args.model == 'resnet':
+        if args.resume is not None:
+            model = keras.models.load_model(args.resume)
+        elif args.model == 'resnet':
             model = ResnetBuilder.build_resnet(
                 (3, dim, dim), num_classes,
                 depth=args.depth, base_filters=args.filters,
                 downsampling_top=args.pooling, shortcut_option=args.shortcut)
         elif args.model == 'vgg16':
-            weights = 'imagenet' if args.pretrained else None
+            weights = 'imagenet'
             model = vgg16.build_model((dim, dim, 3), num_classes,
                                       weights=weights)
 
         # config optimizer
-        if args.algo == 'sgd':
-            optimizer = keras.optimizers.SGD(
-                lr=args.lr, nesterov=True, momentum=0.9)
-        else:
-            optimizer = keras.optimizers.Adam()
+        if args.resume is None:
+            if args.algo == 'sgd':
+                optimizer = keras.optimizers.SGD(
+                    lr=args.lr, nesterov=True, momentum=0.9)
+            else:
+                optimizer = keras.optimizers.Adam()
 
-        model.compile(optimizer=optimizer,
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
+            model.compile(optimizer=optimizer,
+                          loss='categorical_crossentropy',
+                          metrics=['accuracy'])
 
-        trainer.run(model, train, val, num_epochs=args.epochs)
+        trainer.run(model, train, val, num_epochs=args.epochs,
+                    initial_epoch=args.initial_epoch)
