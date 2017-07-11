@@ -8,7 +8,7 @@ import keras.backend as K
 from utils.datagen import DirectoryDataGenerator
 from utils.imgprocessing import (resize_and_crop, center_crop, random_crop,
                                  meanstd, horizontal_flip, color_jitter,
-                                 scale)
+                                 ten_crop)
 
 
 mean = np.asarray([119.26753706, 115.92306357, 116.10504895], dtype=K.floatx())
@@ -69,10 +69,12 @@ def get_data_gen():
 
 def get_test_gen(datatype='val'):
 
+    crop = ten_crop if datatype == 'test' else center_crop
+
     transforms = [
-        partial(scale, new_size=LOAD_DIM),
+        partial(resize_and_crop, new_size=LOAD_DIM),
         partial(meanstd, mean=mean, std=std),
-        partial(center_crop, new_size=CROP_DIM)
+        partial(crop, new_size=CROP_DIM)
     ]
 
     generator = DirectoryDataGenerator(

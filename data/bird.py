@@ -36,17 +36,14 @@ def get_data_gen():
     train_generator = DirectoryDataGenerator(
         os.path.join(URL, 'train'), train_transforms, shuffle=True)
     
-    val_generator = get_test_gen('val', ten_crop_img=False)
+    val_generator = get_test_gen('val')
 
     return train_generator, val_generator
 
 
-def get_test_gen(datatype='val', ten_crop_img=True):
+def get_test_gen(datatype='val'):
 
-    if not ten_crop_img:
-        crop = center_crop
-    else:
-        crop = ten_crop
+    crop = ten_crop if datatype == 'test' else center_crop
 
     transforms = [
         partial(resize_and_crop, new_size=LOAD_DIM),

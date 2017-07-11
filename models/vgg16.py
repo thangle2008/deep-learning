@@ -29,6 +29,4 @@ def build_model(input_shape=(224, 224, 3), num_classes=1000,
 
     model = Model(builtin_model.inputs, x, name='vgg16')
 
-    print model.get_layer(name="predictions").output_shape
-
     return model

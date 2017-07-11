@@ -67,7 +67,7 @@ if __name__ == '__main__':
     num_classes = data_module.NUM_CLASSES
 
     if args.evaluate is not None:
-        test_gen = data_module.get_test_gen(args.evaluate, args.ten_crop)
+        test_gen = data_module.get_test_gen(args.evaluate)
         tester.evaluate(args.classifier, test_gen, args.ten_crop,
                         output_dir=args.output_false)
 
@@ -86,9 +86,8 @@ if __name__ == '__main__':
                 depth=args.depth, base_filters=args.filters,
                 downsampling_top=args.pooling, shortcut_option=args.shortcut)
         elif args.model == 'vgg16':
-            weights = 'imagenet'
             model = vgg16.build_model((dim, dim, 3), num_classes,
-                                      weights=weights)
+                                      weights=None)
 
         # config optimizer
         if args.resume is None:
