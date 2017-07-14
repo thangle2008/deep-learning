@@ -1,5 +1,6 @@
 from __future__ import division
 
+import time
 import math
 import keras
 import numpy as np
@@ -74,7 +75,8 @@ def evaluate(model, test_gen, ten_crop, output_dir=None):
             images into the specified folder.
 
     """
-    keras.backend.clear_session()
+    if keras.backend.backend() == 'tensorflow':
+        keras.backend.clear_session()
 
     # load model and add metrics
     model = keras.models.load_model(model)
@@ -86,6 +88,7 @@ def evaluate(model, test_gen, ten_crop, output_dir=None):
     num_classes = model.output_shape[1]
     batch_idx = 0
 
+    start_time = time.time()
     for X_batch, y_batch in test_gen:
         if steps == 0:
             break
@@ -123,4 +126,5 @@ def evaluate(model, test_gen, ten_crop, output_dir=None):
 
     print "Top 1:", correct_labels / test_gen.n
     print "Top 5:", top_5_correct_labels / test_gen.n
+    print "Finish testing in {:0.2f}s".format(time.time() - start_time)
 

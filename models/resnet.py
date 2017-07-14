@@ -327,10 +327,11 @@ class ResnetBuilder(object):
             18: [2, 2, 2, 2],
             34: [3, 4, 6, 3],
             50: [3, 4, 6, 3],
-            101: [3, 4, 23, 3],
-            152: [3, 8, 36, 3],
+            # for cifar 10
             20: [3, 3, 3],
             32: [5, 5, 5],
+            56: [9, 9, 9],
+            110: [18, 18, 18]
         }
 
         if depth not in num_blocks.keys():
@@ -339,7 +340,7 @@ class ResnetBuilder(object):
         print "Build Resnet with ", params
 
         block_function = basic_block
-        if depth > 34:
+        if depth > 34 and shortcut_option != 'A':
             block_function = bottleneck
 
         return ResnetBuilder.build(input_shape, num_outputs,
