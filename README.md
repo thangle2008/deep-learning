@@ -21,6 +21,15 @@ To start training on the CIFAR10 dataset with Resnet-20, simply run:
 
 `$ python main.py cifar10 --depth 20 --filters 16 --shortcut A`
 
+To start training on the bird dataset with Resnet-18, do the followings:
+
+```
+$ cd data
+$ bash get_bird.sh
+$ cd ..
+$ python main.py bird --depth 18 --pooling
+```
+
 ## Usage instructions
 
 ### 1) Define a data generator file:
