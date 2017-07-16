@@ -37,10 +37,13 @@ def plot_csv(filepath, compare=False, color='r'):
 
     # display losses
     plt.subplot(211)
+    plt.tight_layout()
     if not compare:
+        plt.title("Training vs validation loss")
         plt.plot(epochs, train_losses, 'b', label='train loss', linewidth=1)
         plt.plot(epochs, val_losses, 'r', label='val loss', linewidth=1)
     else:
+        plt.title("Validation loss")
         plt.plot(epochs, val_losses, color, label=line_label, linewidth=1)
 
     plt.legend(loc='best')
@@ -48,9 +51,11 @@ def plot_csv(filepath, compare=False, color='r'):
     # display accuracy
     plt.subplot(212)
     if not compare:
+        plt.title("Training vs validation accuracy")
         plt.plot(epochs, train_accs, 'b', label='train acc', linewidth=1)
         plt.plot(epochs, val_accs, 'r', label='val acc', linewidth=1)
     else:
+        plt.title("Validation accuracy")
         plt.plot(epochs, val_accs, color, label=line_label, linewidth=1)
 
     plt.legend(loc='best')
