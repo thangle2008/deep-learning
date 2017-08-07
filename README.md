@@ -5,7 +5,7 @@
 This repository contains a framework for training Resnet with real-time data augmentation in Keras. 
 
 The Resnet source code was taken from <https://github.com/raghakot/keras-resnet> with some modifications to allow easy configuration. I also added 
-shortcut option A (described in the original paper <https://arxiv.org/pdf/1512.03385.pdf>) for handling residual blocks that
+shortcut option A (described in the original paper <https://arxiv.org/pdf/1512.03385.pdf> [1]) for handling residual blocks that
 have input and output with different dimensions. Note that when shortcut option A is used, the basic block from the original
 paper is always used as residual block.
 
@@ -29,6 +29,52 @@ $ bash get_bird.sh
 $ cd ..
 $ python main.py bird --depth 18 --pooling
 ```
+
+## Experiments
+
+For all experiments:
+- The training algorithm is Stochastic Gradient Descent (SGD) with learning rate reduced on plateau. 
+- The preprocessing step depends mostly on the dataset but generally includes zero centering, normalization, random cropping, and color jittering.
+
+### CIFAR10
+
+Resnet 20, 56, and 101 achive relatively the same results as those of the original paper [1].
+
+| Depth | Top-1 Accuracy | Top-5 Accuracy |
+| -----| -----| ---- |
+|  20   | 0.916 | 0.998 |
+|  56   | 0.929 | 0.998 |
+| 101   | 0.935 | 0.998 |
+
+This confirmed the observation that, generally, the deeper the network is, the better it performs.
+
+### Tiny Imagenet (<https://tiny-imagenet.herokuapp.com/>)
+
+Since the dimension of each image is just 64x64, I replaced the first 2 downsampling layers with just a 3x3 convolutional layer with stride 1. I also tested this dataset using VGG16 network, which is much wider but shallower than Resnet. All the results below are evaluated on the validation set (I cannot submit the test labels for evaluation, but I expect relatively
+the same accuracy).
+
+| Network | Top-1 Accuracy | Top-5 Accuracy |
+|----|-----|-----|
+| VGG16 | 0.526 | 0.763 |
+| Pretrained VGG16 | 0.586 | 0.804 |
+| Resnet-18 | 0.613 | 0.829 |
+| Resnet-50 | 0.63  | 0.842 |
+
+The second VGG16 network is pretrained on the original imagenet. As we can see, deeper network performs much better than shallower network since more layers mean more levels of abstraction. Usually, wider network is helpful if you want to take advantage of parallel computing with a good GPU. Moreover, pretraining the network on the original Imagenet also boosts the accuracy significantly. Unfortunately, I do not have access to pretrained weights for resnet.
+
+### Bird dataset
+
+This is a simple dataset with 14 categories (Blue Jay, Brown Thrasher, ...), each of which has 200 images. Generally, the species are very different from each other (mostly because of their feather colors), so there is no difficulty for the network to achieve high accuracy. 
+
+| Network | Top-1 Val Accuracy | Top-1 Test Accuracy |
+| ---- | ----- |----- |
+| Resnet-18 | 0.961 | 0.962 |
+| Resnet-50 | 0.958 | 0.971 |
+
+In this case, the validation accuracy of Resnet-50 is worse than Resnet-18. It can be that there are too few training samples
+for the network to actually learn new thing. 
+
+### 
 
 ## Usage instructions
 
@@ -100,4 +146,8 @@ This assumes that you have defined the function `get_test_gen` in the data gener
 
 If you use the method `ten_crop` defined in `/utils/imgprocessing.py` in the list of transformation functions (see `bird.py`)
 , you must include the `--ten_crop` flag.
+
+## References
+
+[1] He, Kaiming, et al. “Deep Residual Learning for Image Recognition.” 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2016, doi:10.1109/cvpr.2016.90.
 
