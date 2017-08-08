@@ -40,11 +40,13 @@ For all experiments:
 
 Resnet 20, 56, and 101 achive relatively the same results as those of the original paper [1].
 
-| Depth | Top-1 Accuracy | Top-5 Accuracy |
+| Network | Top-1 Accuracy | Top-5 Accuracy |
 | -----| -----| ---- |
-|  20   | 0.916 | 0.998 |
-|  56   | 0.929 | 0.998 |
-| 101   | 0.935 | 0.998 |
+|  Resnet-20   | 0.916 | 0.998 |
+|  Resnet-56   | 0.929 | 0.998 |
+| Resnet-101   | 0.935 | 0.998 |
+
+![cifar10 training](experiments/resnet_cifar10.png)
 
 This confirmed the observation that, generally, the deeper the network is, the better it performs.
 
@@ -57,10 +59,11 @@ the same accuracy).
 |----|-----|-----|
 | VGG16 | 0.526 | 0.763 |
 | Pretrained VGG16 | 0.586 | 0.804 |
-| Resnet-18 | 0.613 | 0.829 |
 | Resnet-50 | 0.63  | 0.842 |
 
-The second VGG16 network is pretrained on the original imagenet. As we can see, deeper network performs much better than shallower network since more layers mean more levels of abstraction. Usually, wider network is helpful if you want to take advantage of parallel computing with a good GPU. Moreover, pretraining the network on the original Imagenet also boosts the accuracy significantly. Unfortunately, I do not have access to pretrained weights for resnet.
+![tinyimagenet training](experiments/resnet_tinyimagenet.png)
+
+The second VGG16 network is pretrained on the original imagenet. As we can see, deeper network performs much better than shallower network since more layers mean more levels of abstraction (usually, wider network is only helpful if you want to take advantage of parallel computing with a good GPU). Moreover, pretraining the network on the original Imagenet also boosts the accuracy significantly. Unfortunately, I do not have access to pretrained weights for Resnet.
 
 ### Bird dataset
 
